@@ -1,0 +1,13 @@
+#orderconfirmed {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+}
+
+#orderconfirmed p {
+    font-weight: bold;
+    font-size: large;
+}

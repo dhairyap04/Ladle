@@ -1,0 +1,29 @@
+.postings-row {
+  width: 49%;
+  padding: 20px 0px;
+  border-radius: 10px;
+
+}
+
+.main-container {
+  padding: 30px 0px;
+}
+
+.maps-row {
+  width: 49%;
+  border-radius: 10px;
+  align-self: stretch;
+  min-height: 400px;
+  padding: 20px 0 30px 0;
+}
+
+.create-posting {
+  width: 100%;
+  border-radius: 5px;
+}
+
+.welcome {
+  padding-left: 20px;
+  font-weight: 500;
+  font-size: 24px;
+}

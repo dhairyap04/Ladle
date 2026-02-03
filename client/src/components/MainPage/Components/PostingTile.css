@@ -1,0 +1,34 @@
+.tile-container {
+  border-radius: 5px;
+  padding: 15px 20px;
+  margin: 10px 0px;
+  background-color: #EFEFEF;
+  min-height: 70px;
+}
+
+.restaurant-details {
+  padding-left: 15px;
+}
+
+.posting-image {
+  height: 70px;
+}
+
+p {
+  margin: 9px 0;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.address {
+  font-size: 15px;
+  color: #575757;
+}
+
+.pickupTimes {
+  font-size: 15px;
+  color: #575757;
+}
