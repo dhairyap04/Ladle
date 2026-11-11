@@ -7,6 +7,7 @@ import MonthlyBars from "./MonthlyBars";
 import api, { errorMessage } from "../../api";
 import useAuthUser from "../../useAuthUser";
 import { FOOD_TYPES } from "../../food";
+import usePageTitle from "../../usePageTitle";
 
 const Stat = ({ value, label, hint }) => (
   <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 4 }}>
@@ -17,6 +18,7 @@ const Stat = ({ value, label, hint }) => (
 );
 
 const ImpactPage = () => {
+  usePageTitle("Your impact");
   const user = useAuthUser();
   const history = useHistory();
   const [data, setData] = useState(null);

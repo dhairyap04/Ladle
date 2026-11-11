@@ -22,6 +22,33 @@ const AppHeader = ({ user }) => {
 
   return (
     <>
+    <Box
+      component="a"
+      href="#main"
+      onClick={(e) => {
+        e.preventDefault();
+        const main = document.querySelector("main");
+        if (main) {
+          main.setAttribute("tabindex", "-1");
+          main.focus();
+        }
+      }}
+      sx={{
+        position: "absolute",
+        left: 8,
+        top: -48,
+        zIndex: 30,
+        bgcolor: "primary.main",
+        color: "#fff",
+        px: 2,
+        py: 1,
+        borderRadius: 2,
+        fontWeight: 700,
+        "&:focus": { top: 8 },
+      }}
+    >
+      Skip to content
+    </Box>
     <OfflineBanner />
     <InstallPrompt />
     {user && <BottomNav user={user} />}

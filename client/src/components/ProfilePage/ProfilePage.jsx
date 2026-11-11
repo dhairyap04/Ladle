@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
-import { Alert, Box, Button, Container, FormControlLabel, InputAdornment, MenuItem, Paper, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Container, FormControlLabel, InputAdornment, MenuItem, Paper, Skeleton, Snackbar, Stack, Switch, TextField, Typography } from "@mui/material";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
 import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
@@ -12,6 +12,7 @@ import AppHeader from "../Shared/AppHeader";
 import ChipPicker from "../Shared/ChipPicker";
 import api, { errorMessage } from "../../api";
 import { FOOD_TYPES, WEEKDAYS } from "../../food";
+import usePageTitle from "../../usePageTitle";
 
 // openHours is stored as "HH:MM-HH:MM".
 const splitHours = (openHours) => {
@@ -99,12 +100,14 @@ const Section = ({ title, hint, children }) => (
 );
 
 const ProfilePage = () => {
+  usePageTitle("Your profile");
   const history = useHistory();
   const [user, setUser] = useState(undefined); // for the header
   const [track, setTrack] = useState(null); // own reliability summary
   const [values, setValues] = useState(null);
   const [saved, setSaved] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const loading = values === null;
 
@@ -160,18 +163,24 @@ const ProfilePage = () => {
       });
     }
     if (Object.keys(changes).length === 0) {
-      history.push("/main");
+      setNotice("There's nothing new to save.");
       return;
     }
 
     setSaving(true);
     setError("");
     try {
-      await api.post("user/update", changes);
-      history.push("/main");
+      const res = await api.post("user/update", changes);
+      // Stay on the page so the change is visible; resync from what was saved.
+      const form = toForm(res.data.user);
+      setUser(res.data.user);
+      setValues(form);
+      setSaved(form);
+      setNotice("Profile saved.");
     } catch (err) {
-      setSaving(false);
       setError(errorMessage(err));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -205,13 +214,16 @@ const ProfilePage = () => {
               What restaurants{isDriver ? " and food banks" : ""} see about you, from the last 6 months.
               Releasing within 2 hours of a pickup or missing one lowers it.
             </Typography>
-            <ReliabilityBadge summary={track} noun={isDriver ? "deliveries" : "pickups"} />
+            <ReliabilityBadge summary={track} noun={isDriver ? "delivery" : "pickup"} />
           </Paper>
         )}
         {isFoodbank && (
           <VerificationCard user={user} onChange={setUser} dirty={JSON.stringify(values) !== JSON.stringify(saved)} />
         )}
 
+        {/* Fields render once the profile has loaded, so labels sit above filled values. */}
+        {loading && !error && <Skeleton variant="rounded" height={480} sx={{ borderRadius: 5 }} />}
+        {!loading && (
         <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5 }}>
           <Section title={isDriver ? "About you" : "Organization"} hint={isDriver ? "Your name and phone number are shared with the restaurant and food bank once you accept a delivery." : undefined}>
             <Box sx={twoCol}>
@@ -305,12 +317,21 @@ const ProfilePage = () => {
           )}
 
           <Stack direction="row" spacing={1.5} justifyContent="flex-end" sx={{ mt: 4 }}>
-            <Button onClick={() => history.push("/main")} color="inherit">Cancel</Button>
+            <Button onClick={() => history.push("/main")} color="inherit">Back</Button>
             <Button onClick={save} disabled={loading || saving} variant="contained" size="large">
-              {saving ? "Saving…" : "Save profile"}
+              {saving ? "Saving…" : "Save changes"}
             </Button>
           </Stack>
         </Paper>
+        )}
+        <Snackbar
+          open={Boolean(notice)}
+          autoHideDuration={3000}
+          onClose={() => setNotice("")}
+          message={notice}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          sx={{ bottom: { xs: 80, sm: 24 } }}
+        />
       </Container>
     </>
   );

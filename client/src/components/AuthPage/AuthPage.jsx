@@ -16,6 +16,7 @@ import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import api, { errorMessage } from "../../api";
 import AppHeader from "../Shared/AppHeader";
+import usePageTitle from "../../usePageTitle";
 
 const ROLES = [
     { value: "restaurant", icon: StorefrontRoundedIcon, title: "Restaurant", text: "I have surplus food to donate" },
@@ -180,6 +181,7 @@ function AuthForm({ history, initialLogin, initialRole }) {
 const AuthPage = () => {
     const history = useHistory();
     const params = new URLSearchParams(useLocation().search);
+    usePageTitle(params.get("mode") === "login" ? "Log in" : "Join");
     const requested = params.get("role");
     const initialRole = ["restaurant", "foodbank", "driver"].includes(requested) ? requested : null;
 

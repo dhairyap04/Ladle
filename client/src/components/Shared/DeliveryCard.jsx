@@ -66,7 +66,7 @@ const Contact = ({ icon: Icon, label, person }) =>
   ) : null;
 
 // A delivery job. `viewer` is "driver" or "foodbank" (actions) or "restaurant" (read-only).
-const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false }) => {
+const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, title }) => {
   const [confirming, setConfirming] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -105,6 +105,7 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false }) 
 
   return (
     <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 4 }}>
+      {title && <Typography component="h2" variant="h6" sx={{ mb: 1 }}>{title}</Typography>}
       <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
         <Chip size="small" label={status.label} sx={status.sx} />
         {(delivery.fitProblems || []).slice(0, 1).map((p) => (
@@ -114,7 +115,7 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false }) 
 
       <Stack spacing={0.75} sx={{ mt: 1.5 }}>
         <Stack direction="row" spacing={1} alignItems="flex-start">
-          <StorefrontRoundedIcon fontSize="small" sx={{ color: "#B85A08", mt: "2px" }} />
+          <StorefrontRoundedIcon fontSize="small" sx={{ color: "#A34F06", mt: "2px" }} />
           <Typography variant="body2"><strong>From {delivery.restaurantName}</strong> · {delivery.pickupAddress}</Typography>
         </Stack>
         <Stack direction="row" spacing={1} alignItems="flex-start">
@@ -134,7 +135,7 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false }) 
           {viewer !== "driver" && <Contact icon={LocalShippingRoundedIcon} label="driver" person={delivery.contacts.driver} />}
           {viewer !== "restaurant" && <Contact icon={StorefrontRoundedIcon} label="restaurant" person={delivery.contacts.restaurant} />}
           {viewer !== "foodbank" && <Contact icon={VolunteerActivismRoundedIcon} label="food bank" person={delivery.contacts.foodBank} />}
-          {delivery.driverReliability && <ReliabilityBadge summary={delivery.driverReliability} noun="deliveries" />}
+          {delivery.driverReliability && <ReliabilityBadge summary={delivery.driverReliability} noun="delivery" />}
         </Stack>
       )}
 

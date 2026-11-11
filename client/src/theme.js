@@ -6,7 +6,7 @@ export const brand = {
   leafDark: "#0F4A32",
   leafTint: "#E6F2EC",
   tangerine: "#F08A24",
-  tangerineText: "#B85A08", // tangerine dark enough for text on cream
+  tangerineText: "#A34F06", // tangerine dark enough for text on cream
   tangerineTint: "#FDEEDC",
   cream: "#FAF7F2",
   border: "#E8E2D8",

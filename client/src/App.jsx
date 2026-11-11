@@ -9,6 +9,7 @@ import ConfirmOrder from "./components/ConfirmOrder/ConfirmOrder";
 import ImpactPage from "./components/ImpactPage/ImpactPage";
 import ReceiptPage from "./components/ReceiptPage/ReceiptPage";
 import AdminPage from "./components/AdminPage/AdminPage";
+import NotFound from "./components/NotFound";
 
 export default function App() {
 
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/impact" component={ImpactPage} exact />
             <Route path="/receipt/:id" component={ReceiptPage} exact />
             <Route path="/admin" component={AdminPage} exact />
+            <Route component={NotFound} />
         </Switch>
       </div>
     </BrowserRouter>

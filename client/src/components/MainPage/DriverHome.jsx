@@ -5,6 +5,7 @@ import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import AppHeader from "../Shared/AppHeader";
 import DeliveryCard from "../Shared/DeliveryCard";
 import api, { errorMessage } from "../../api";
+import usePageTitle from "../../usePageTitle";
 
 const ACTIVE = ["accepted", "picked_up"];
 
@@ -17,6 +18,7 @@ const Empty = ({ children }) => (
 
 // Home page for volunteer drivers: jobs in progress, then deliveries that need a driver.
 const DriverHome = ({ user }) => {
+  usePageTitle("Deliveries");
   const [available, setAvailable] = useState(null);
   const [mine, setMine] = useState([]);
   const [profile, setProfile] = useState(null);

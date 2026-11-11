@@ -25,6 +25,8 @@ import api, { errorMessage } from "../../api";
 import useAuthUser from "../../useAuthUser";
 import { ROLE_LABELS, roleOf } from "../../roles";
 import ReliabilityBadge from "../Shared/ReliabilityBadge";
+import { plural } from "../../plural";
+import usePageTitle from "../../usePageTitle";
 
 const STATUS_CHIP = {
   unverified: { label: "Unverified", sx: { bgcolor: "#EEECE8", color: "#4F5753" } },
@@ -82,7 +84,7 @@ const UserRow = ({ user, onDecide }) => (
         {user.verificationNote && <Typography variant="body2" color="text.secondary">Note: {user.verificationNote}</Typography>}
         {user.reliability && roleOf(user) !== "restaurant" && (
           <Box sx={{ my: 0.75 }}>
-            <ReliabilityBadge summary={user.reliability} noun={roleOf(user) === "driver" ? "deliveries" : "pickups"} showFlag />
+            <ReliabilityBadge summary={user.reliability} noun={roleOf(user) === "driver" ? "delivery" : "pickup"} showFlag />
           </Box>
         )}
         <Typography variant="caption" color="text.secondary">
@@ -108,6 +110,7 @@ const UserRow = ({ user, onDecide }) => (
 );
 
 const AdminPage = () => {
+  usePageTitle("Admin");
   const user = useAuthUser();
   const history = useHistory();
   const [tab, setTab] = useState("pending");
@@ -170,12 +173,13 @@ const AdminPage = () => {
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         {overview && (
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(5, 1fr)" }, gap: 2, mb: 3 }}>
-            <Stat value={overview.restaurants} label={`Restaurants · ${overview.drivers || 0} drivers`} />
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(6, 1fr)" }, gap: 2, mb: 3 }}>
+            <Stat value={overview.restaurants} label="Restaurants" />
+            <Stat value={overview.drivers || 0} label="Volunteer drivers" />
             <Stat value={overview.foodBanks} label={`Food banks (${overview.verification.verified || 0} verified)`} />
             <Stat value={pending} label="Waiting for verification" />
             <Stat value={overview.postings.open || 0} label="Open postings" />
-            <Stat value={`${overview.kgRescued} kg`} label={`Rescued (${overview.postings.picked_up || 0} pickups)`} />
+            <Stat value={`${overview.kgRescued} kg`} label={`Rescued in ${plural(overview.postings.picked_up || 0, "pickup")}`} />
           </Box>
         )}
 

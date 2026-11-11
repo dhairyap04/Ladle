@@ -10,6 +10,7 @@ import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import AppHeader from "../Shared/AppHeader";
 import Logo from "../Shared/Logo";
 import useAuthUser from "../../useAuthUser";
+import usePageTitle from "../../usePageTitle";
 
 const STEPS = [
   {
@@ -74,7 +75,7 @@ const IconBadge = ({ icon: Icon, tone = "leaf" }) => (
       display: "grid",
       placeItems: "center",
       bgcolor: tone === "leaf" ? "primary.light" : "#FDEEDC",
-      color: tone === "leaf" ? "primary.main" : "#B85A08",
+      color: tone === "leaf" ? "primary.main" : "#A34F06",
       flexShrink: 0,
     }}
   >
@@ -83,6 +84,7 @@ const IconBadge = ({ icon: Icon, tone = "leaf" }) => (
 );
 
 const LandingPage = () => {
+  usePageTitle("");
   const user = useAuthUser();
 
   return (
@@ -101,7 +103,7 @@ const LandingPage = () => {
           }}
         >
           <Box>
-            <Chip label="Free for restaurants and food banks" sx={{ bgcolor: "#FDEEDC", color: "#B85A08", mb: 2 }} />
+            <Chip label="Free for restaurants and food banks" sx={{ bgcolor: "#FDEEDC", color: "#A34F06", mb: 2 }} />
             <Typography component="h1" variant="h2" sx={{ fontSize: { xs: "2.4rem", md: "3.5rem" }, lineHeight: 1.1, color: "primary.dark" }}>
               Good food, picked up. <Box component="span" sx={{ color: "primary.main" }}>Not thrown out.</Box>
             </Typography>
@@ -143,7 +145,7 @@ const LandingPage = () => {
               <Paper key={step.title} variant="outlined" sx={{ p: 3, borderRadius: 4, bgcolor: "background.default" }}>
                 <Stack direction="row" spacing={2} alignItems="center">
                   <IconBadge icon={step.icon} />
-                  <Typography sx={{ fontWeight: 800, color: "#B85A08" }}>Step {index + 1}</Typography>
+                  <Typography sx={{ fontWeight: 800, color: "#A34F06" }}>Step {index + 1}</Typography>
                 </Stack>
                 <Typography component="h3" variant="h6" sx={{ mt: 2 }}>{step.title}</Typography>
                 <Typography sx={{ mt: 1, color: "text.secondary" }}>{step.text}</Typography>

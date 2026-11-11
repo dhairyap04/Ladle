@@ -15,6 +15,7 @@ import api from "../../api";
 import useAuthUser from "../../useAuthUser";
 import { roleOf } from "../../roles";
 import DriverHome from "./DriverHome";
+import usePageTitle from "../../usePageTitle";
 
 
 const EmptyState = ({ children }) => (
@@ -49,6 +50,7 @@ const MainPage = () => {
 };
 
 const PostingsHome = ({ user }) => {
+  usePageTitle(roleOf(user) === "restaurant" ? "Your postings" : "Open pickups");
   const [postings, setPostings] = useState(null); // null while loading
   const [loadError, setLoadError] = useState(false);
   const [myPostings, setMyPostings] = useState([]);
@@ -188,7 +190,7 @@ const PostingsHome = ({ user }) => {
           {user.isFoodbank ? "Pickups you claim will show up here." : "You haven't posted any food yet. Your postings will show up here."}
         </EmptyState>
       ) : (
-        myPostings.map((posting) => <PostingTile key={posting._id} postingData={posting} showStatus />)
+        myPostings.map((posting) => <PostingTile key={posting._id} postingData={posting} showStatus foodTitle={isRestaurant} />)
       )}
     </Section>
   );

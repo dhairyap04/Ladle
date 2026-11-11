@@ -21,7 +21,7 @@ const ENDED = ["delivered", "cancelled", "expired", "missed"];
 
 // Volunteer driver status for a posting. The claiming food bank can ask for a
 // driver; the restaurant and driver see progress and contact details.
-const DeliverySection = ({ post, user, isOwner, isClaimer, onPostChanged }) => {
+const DeliverySection = ({ post, user, isOwner, isClaimer, onPostChanged, onDelivery }) => {
   const [delivery, setDelivery] = useState(undefined);
   const [asking, setAsking] = useState(false);
   const [notes, setNotes] = useState("");
@@ -32,10 +32,11 @@ const DeliverySection = ({ post, user, isOwner, isClaimer, onPostChanged }) => {
     try {
       const res = await api.get(`delivery/for-posting/${post._id}`);
       setDelivery(res.data);
+      if (onDelivery) onDelivery(res.data);
     } catch {
       setDelivery(null);
     }
-  }, [post._id]);
+  }, [post._id, onDelivery]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -45,6 +46,7 @@ const DeliverySection = ({ post, user, isOwner, isClaimer, onPostChanged }) => {
     try {
       const res = await api.post("delivery", { postingId: post._id, notes });
       setDelivery(res.data);
+      if (onDelivery) onDelivery(res.data);
       setAsking(false);
     } catch (err) {
       setError(errorMessage(err));
@@ -68,7 +70,7 @@ const DeliverySection = ({ post, user, isOwner, isClaimer, onPostChanged }) => {
 
   return (
     <Stack spacing={1.5}>
-      {delivery && <DeliveryCard delivery={delivery} viewer={viewer} onChanged={changed} />}
+      {delivery && <DeliveryCard delivery={delivery} viewer={viewer} onChanged={changed} title="Volunteer delivery" />}
       {canAsk && (
         <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 4 }}>
           <Stack direction="row" spacing={1.5} alignItems="flex-start">

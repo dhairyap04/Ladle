@@ -45,6 +45,7 @@ import StatusChip from '../Shared/StatusChip';
 import { FOOD_TYPES, STORAGE, allergenSummary, photoUrl } from '../../food';
 import SimpleMap from '../MainPage/Components/GoogleMap';
 import PostingModal from '../MainPage/Components/CreatePosting';
+import usePageTitle from "../../usePageTitle";
 
 const STATUS_TEXT = {
   claimed: "A food bank has already claimed this posting.",
@@ -111,6 +112,8 @@ const ViewPost = () => {
   const [actionError, setActionError] = useState("");
   const [editing, setEditing] = useState(false);
   const [claimerReliability, setClaimerReliability] = useState(null);
+  const [delivery, setDelivery] = useState(null);
+  usePageTitle(post ? post.fromRestaurantName : "Posting");
 
   const reloadPost = useCallback(() => {
     api.get(`posting/one/${id}`)
@@ -171,6 +174,17 @@ const ViewPost = () => {
     Date.now() - new Date(post.pickupEndsAt) < DISPUTE_HOURS * 3600e3;
 
   const renderActions = () => {
+    const driverComing = delivery && ["accepted", "picked_up"].includes(delivery.status);
+    if (isClaimer && post.status === "claimed" && driverComing) {
+      return (
+        <Stack spacing={1.5}>
+          <Alert severity="success">
+            {delivery.driverName} is bringing this food to your food bank. Their details are in the volunteer delivery card.
+          </Alert>
+          <Button color="inherit" onClick={() => setConfirming("pickedUp")}>We collected it ourselves instead</Button>
+        </Stack>
+      );
+    }
     if (isClaimer && post.status === "claimed") {
       return (
         <Stack spacing={1.5}>
@@ -322,7 +336,7 @@ const ViewPost = () => {
           {PostInfo}
           <Stack spacing={3}>
             {post && user && (
-              <DeliverySection post={post} user={user} isOwner={Boolean(isOwner)} isClaimer={Boolean(isClaimer)} onPostChanged={reloadPost} />
+              <DeliverySection post={post} user={user} isOwner={Boolean(isOwner)} isClaimer={Boolean(isClaimer)} onPostChanged={reloadPost} onDelivery={setDelivery} />
             )}
             {post && user && (isOwner || roleOf(user) === "foodbank") && (
               <MessagesPanel postingId={post._id} user={user} isOwner={Boolean(isOwner)} />
