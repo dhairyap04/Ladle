@@ -14,7 +14,7 @@ import Geocode from "react-geocode";
 
 // Root imports
 import api, { errorMessage } from '../../api';
-import { formatPickupTime } from '../../time';
+import { formatPickupDate, formatPickupTime } from '../../time';
 import SimpleMap from '../MainPage/Components/GoogleMap';
 
 // css
@@ -27,7 +27,23 @@ const LinkTheme = { textDecoration: "None", color: "black" };
 
 const STATUS_TEXT = {
   claimed: "A food bank has already claimed this posting.",
+  picked_up: "This food has been picked up.",
+  expired: "The pickup window for this posting has passed.",
   cancelled: "The restaurant has withdrawn this posting.",
+};
+
+const CONFIRM_TEXT = {
+  claim: { title: "Claim this pickup?", button: "Yes, claim it" },
+  cancel: {
+    title: "Withdraw this posting?",
+    body: "Food banks will no longer see this posting. This can't be undone.",
+    button: "Yes, withdraw it",
+  },
+  pickedUp: {
+    title: "Mark as picked up?",
+    body: "Confirm that your food bank has collected this food.",
+    button: "Yes, we picked it up",
+  },
 };
 
 const ViewPost = () => {
@@ -38,7 +54,7 @@ const ViewPost = () => {
   const [loadError, setLoadError] = useState("");
   const [user, setUser] = useState(null);
   const [latlng, setLatlng] = useState([]);
-  const [confirming, setConfirming] = useState(null); // "claim" | "cancel" | null
+  const [confirming, setConfirming] = useState(null); // "claim" | "cancel" | "pickedUp" | null
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
 
@@ -68,6 +84,11 @@ const ViewPost = () => {
       if (action === "claim") {
         await api.post(`posting/${id}/claim`);
         history.push("/confirmed");
+      } else if (action === "pickedUp") {
+        const res = await api.post(`posting/${id}/picked-up`);
+        setPost(res.data);
+        setBusy(false);
+        setConfirming(null);
       } else {
         await api.post(`posting/${id}/cancel`);
         history.push("/main");
@@ -81,8 +102,22 @@ const ViewPost = () => {
 
   const isOpen = post && (!post.status || post.status === "open");
   const isOwner = post && user && post.donorId && post.donorId === user.id;
+  const isClaimer = post && user && post.claimedBy && post.claimedBy === user.id;
 
   const renderActions = () => {
+    if (isClaimer && post.status === "claimed") {
+      return (
+        <>
+          <Alert severity="success" sx={{ mt: 1 }}>Your food bank claimed this pickup.</Alert>
+          <Button variant='contained' style={{ marginTop: "10px" }} onClick={() => setConfirming("pickedUp")}>
+            Mark as picked up
+          </Button>
+        </>
+      );
+    }
+    if (isOwner && post.status === "claimed") {
+      return <Alert severity="success" sx={{ mt: 1 }}>Claimed by {post.claimedByName}.</Alert>;
+    }
     if (!isOpen) {
       return <Alert severity="info" sx={{ mt: 1 }}>{STATUS_TEXT[post.status]}</Alert>;
     }
@@ -122,7 +157,9 @@ const ViewPost = () => {
       <div id="info">
         <h1 className="restaurant-name">{post.fromRestaurantName}</h1>
         <h3 className="restaurant-address">{post.fromRestaurantAddress}</h3>
-        <p className="pickup"><b>Posted:</b> {new Date(post.createdAt).toDateString()}</p>
+        <p className="pickup">
+          <b>Pickup Date:</b> {post.pickupDate ? formatPickupDate(post.pickupDate) : `Posted ${new Date(post.createdAt).toDateString()}`}
+        </p>
         <p className="pickup"><b>Pickup Time:</b> {formatPickupTime(post.pickupTimeBegin)} - {formatPickupTime(post.pickupTimeEnd)}</p>
         <hr style={{ color: "black", width: "100%" }} />
         <p><b>Notes:</b> {post.notes ? post.notes : "None"}</p>
@@ -167,20 +204,18 @@ const ViewPost = () => {
       </div>
 
       <Dialog open={confirming !== null} onClose={() => !busy && setConfirming(null)}>
-        <DialogTitle>
-          {confirming === "claim" ? "Claim this pickup?" : "Withdraw this posting?"}
-        </DialogTitle>
+        <DialogTitle>{confirming && CONFIRM_TEXT[confirming].title}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {confirming === "claim"
-              ? `This reserves the food for your food bank and removes it from the list for everyone else. Please pick it up between ${post ? formatPickupTime(post.pickupTimeBegin) : ""} and ${post ? formatPickupTime(post.pickupTimeEnd) : ""}.`
-              : "Food banks will no longer see this posting. This can't be undone."}
+            {confirming === "claim" && post
+              ? `This reserves the food for your food bank and removes it from the list for everyone else. Please pick it up${post.pickupDate ? ` on ${formatPickupDate(post.pickupDate)}` : ""} between ${formatPickupTime(post.pickupTimeBegin)} and ${formatPickupTime(post.pickupTimeEnd)}.`
+              : confirming && CONFIRM_TEXT[confirming].body}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirming(null)} disabled={busy}>Go back</Button>
           <Button onClick={runAction} disabled={busy} variant="contained" color={confirming === "cancel" ? "error" : "primary"}>
-            {confirming === "claim" ? "Yes, claim it" : "Yes, withdraw it"}
+            {confirming && CONFIRM_TEXT[confirming].button}
           </Button>
         </DialogActions>
       </Dialog>

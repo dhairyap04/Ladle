@@ -15,7 +15,8 @@
 
 .modal-container .modal {
   width: 45%;
-  height: 50%;
+  max-height: 90vh;
+  overflow-y: auto;
   background: white;
   display: flex;
   align-items: flex-start;

@@ -31,6 +31,7 @@ class MainPage extends Component {
       loadError: false,
       authorized: false,
       authObject: {},
+      myPostings: [],
       toggleModal: false,
     };
   }
@@ -38,8 +39,38 @@ class MainPage extends Component {
   componentDidMount() {
     this.getPostings();
     api.get("user/isAuth")
-      .then(res => this.setState({ authorized: true, authObject: res.data }))
+      .then(res => {
+        this.setState({ authorized: true, authObject: res.data });
+        this.getMyPostings();
+      })
       .catch(() => this.setState({ authorized: false }));
+  }
+
+  // A restaurant's own postings, or the pickups a food bank has claimed.
+  getMyPostings = async () => {
+    try {
+      const res = await api.get("posting/mine");
+      this.setState({ myPostings: res.data });
+    } catch (err) {
+      console.error("My postings retrieval failed", err);
+    }
+  }
+
+  renderMyPostings() {
+    const { authorized, authObject, myPostings } = this.state;
+    if (!authorized) return null;
+    return (
+      <div className="my-postings">
+        <h2 className="section-title">{authObject.isFoodbank ? "Your pickups" : "Your postings"}</h2>
+        {myPostings.length === 0 ? (
+          <p className="empty-state">
+            {authObject.isFoodbank ? "Pickups you claim will show up here." : "Postings you create will show up here."}
+          </p>
+        ) : (
+          myPostings.map((posting) => <PostingTile key={posting._id} postingData={posting} showStatus />)
+        )}
+      </div>
+    );
   }
 
   getPostings = async () => {
@@ -69,6 +100,7 @@ class MainPage extends Component {
   handleCreated = () => {
     this.setState({ toggleModal: false });
     this.getPostings();
+    this.getMyPostings();
   }
 
   renderPostings() {
@@ -115,6 +147,7 @@ class MainPage extends Component {
                 <Button variant="contained" sx={{ width: "100%", height: "45px" }} onClick={() => { this.setState({ toggleModal: true }) }} >Create a Posting</Button>
               )}
               {this.renderPostings()}
+              {this.renderMyPostings()}
             </div>
             <div className='maps-row'>
               <SimpleMap latlng={latlng} />

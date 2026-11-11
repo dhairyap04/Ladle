@@ -5,6 +5,7 @@ import { Component } from 'react'
 // Root Imports
 import AddressContainer from '../../Shared/AddressContainer';
 import api, { errorMessage } from '../../../api';
+import { localDateTimeToIso, todayDateInput } from '../../../time';
 
 // css imports
 import "./CreatePosting.css";
@@ -18,6 +19,7 @@ class CreatePostingModal extends Component {
       province: "",
       postalCode: "",
       country: "",
+      pickupDate: todayDateInput(),
       pickupTimeBegin: "",
       pickupTimeEnd: "",
       notes: "",
@@ -31,10 +33,14 @@ class CreatePostingModal extends Component {
   }
 
   validate() {
-    const { street, city, pickupTimeBegin, pickupTimeEnd } = this.state;
+    const { street, city, pickupDate, pickupTimeBegin, pickupTimeEnd } = this.state;
     if (!street.trim() || !city.trim()) return "Please enter the street address and city.";
+    if (!pickupDate) return "Please enter the pickup date.";
     if (!pickupTimeBegin || !pickupTimeEnd) return "Please enter the pickup start and end times.";
     if (pickupTimeEnd <= pickupTimeBegin) return "The pickup end time must be after the start time.";
+    if (new Date(`${pickupDate}T${pickupTimeEnd}`) <= new Date()) {
+      return "That pickup window has already ended. Please choose a later date or time.";
+    }
     return "";
   }
 
@@ -55,6 +61,8 @@ class CreatePostingModal extends Component {
     try {
       await api.post("posting/create", {
         fromRestaurantAddress: overallAddress,
+        pickupDate: this.state.pickupDate,
+        pickupEndsAt: localDateTimeToIso(this.state.pickupDate, this.state.pickupTimeEnd),
         pickupTimeBegin: this.state.pickupTimeBegin,
         pickupTimeEnd: this.state.pickupTimeEnd,
         notes: this.state.notes,
@@ -81,6 +89,18 @@ class CreatePostingModal extends Component {
           <div className="flex-row" style={{ width: "100%", justifyContent: "space-between" }}>
             <div className='flex-column create-posting-left'>
               <AddressContainer changeValue={this.changeValue} />
+              <TextField
+                type="date"
+                required
+                value={this.state.pickupDate}
+                onChange={(e) => this.changeValue("pickupDate", e.target.value)}
+                className="pickup-period"
+                fullWidth
+                size="small"
+                label="Pickup Date"
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: todayDateInput() }}
+              />
               <TextField
                 type="time"
                 required

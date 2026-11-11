@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
-const POSTING_STATUSES = ["open", "claimed", "cancelled"];
+// open -> claimed -> picked_up; open -> expired (pickup window passed) or cancelled (withdrawn by donor).
+const POSTING_STATUSES = ["open", "claimed", "picked_up", "expired", "cancelled"];
 
 // Times are stored as HHMM integers (e.g. 1430 for 2:30 PM); 2400 means midnight at the end of the day.
 const pickupTime = {
@@ -21,12 +22,18 @@ const FoodPostingsSchema = new mongoose.Schema(
     fromRestaurantAddress: { type: String, required: true, trim: true },
     pickupTimeBegin: pickupTime,
     pickupTimeEnd: pickupTime,
+    // Calendar day of the pickup in the restaurant's local time, "YYYY-MM-DD".
+    pickupDate: { type: String, match: /^\d{4}-\d{2}-\d{2}$/ },
+    // Absolute end of the pickup window, used to expire stale postings.
+    // Postings created before this field existed never expire automatically.
+    pickupEndsAt: { type: Date, index: true },
     notes: { type: String, default: "" },
     // Postings created before the status field existed have no status and are treated as open.
     status: { type: String, enum: POSTING_STATUSES, default: "open", index: true },
     claimedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Users" },
     claimedByName: { type: String },
     claimedAt: { type: Date },
+    pickedUpAt: { type: Date },
   },
   { timestamps: true }
 );
