@@ -140,6 +140,14 @@ const ViewPost = () => {
     if (isOwner && post.status === "claimed") {
       return <Alert severity="success">Claimed by {post.claimedByName}.</Alert>;
     }
+    if (post.status === "picked_up" && (isOwner || isClaimer)) {
+      return (
+        <Stack spacing={1.5}>
+          <Alert severity="success">{STATUS_TEXT.picked_up}</Alert>
+          <Button component={Link} to={`/receipt/${post._id}`} variant="outlined">View donation record</Button>
+        </Stack>
+      );
+    }
     if (!isOpen) {
       return <Alert severity="info">{STATUS_TEXT[post.status]}</Alert>;
     }

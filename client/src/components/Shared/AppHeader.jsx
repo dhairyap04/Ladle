@@ -39,6 +39,9 @@ const AppHeader = ({ user }) => {
               <Button component={RouterLink} to="/main" color="inherit" sx={{ display: { xs: "none", sm: "inline-flex" } }}>
                 {user.isFoodbank ? "Pickups" : "Postings"}
               </Button>
+              <Button component={RouterLink} to="/impact" color="inherit" sx={{ display: { xs: "none", sm: "inline-flex" } }}>
+                Impact
+              </Button>
               <NotificationBell />
               <Button component={RouterLink} to="/view_profile" color="inherit">
                 Profile
