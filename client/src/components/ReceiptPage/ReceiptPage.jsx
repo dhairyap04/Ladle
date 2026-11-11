@@ -74,7 +74,7 @@ const ReceiptPage = () => {
                     {receipt.recipient.verified && (
                       <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: "primary.main", mt: 0.5 }}>
                         <VerifiedRoundedIcon fontSize="small" />
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>Verified by MealDrop</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>Verified by Ladle</Typography>
                       </Stack>
                     )}
                   </>
@@ -95,7 +95,7 @@ const ReceiptPage = () => {
             <Divider sx={{ my: 3 }} />
 
             <Typography variant="body2" color="text.secondary">
-              This is a record of a food donation arranged through MealDrop, for the records of the donor and the recipient.
+              This is a record of a food donation arranged through Ladle, for the records of the donor and the recipient.
               It is not an official donation receipt for income tax purposes. In Canada, official receipts can only be issued by a
               registered charity or other qualified donee; contact the recipient organization about receipting.
             </Typography>

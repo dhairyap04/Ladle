@@ -44,7 +44,7 @@ const VERIFICATION = {
     title: "Get verified",
     text: "Verified food banks show a badge to restaurants. Save your charitable registration number and address, then request verification.",
   },
-  pending: { severity: "info", title: "Verification requested", text: "A MealDrop admin is reviewing your details. We'll let you know." },
+  pending: { severity: "info", title: "Verification requested", text: "A Ladle admin is reviewing your details. We'll let you know." },
   verified: { severity: "success", title: "Verified food bank", text: "Restaurants see a verified badge when you claim their food." },
   rejected: { severity: "warning", title: "Verification not approved", text: "" },
 };

@@ -47,10 +47,16 @@
     <!-- bag -->
     <path d="M8 30h104l-8 120a8 8 0 0 1-8 7H24a8 8 0 0 1-8-7Z" fill="#E7C796"/>
     <path d="M8 30h104l-2 18H10Z" fill="#D9B27A"/>
-    <!-- drop badge -->
-    <g transform="translate(40 70)">
-      <path d="M20 0S2 19 2 30a18 18 0 0 0 36 0C38 19 20 0 20 0Z" fill="#1B6B4A"/>
-      <path d="M10 30h20a10 10 0 0 1-20 0Z" fill="#FFFFFF"/>
+    <!-- Ladle badge -->
+    <g transform="translate(41 74) scale(0.6)">
+<circle cx="32" cy="32" r="31" fill="#1B6B4A"/>
+<path d="M38.5 35 49 12.5" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+<path d="M12 34.5h28a14 14 0 0 1-28 0Z" fill="#FFFFFF"/>
+<g fill="none" stroke="#F08A24" stroke-width="3" stroke-linecap="round">
+    <path d="M20 28.5c-2-2.4 2-4 0-6.4"/>
+    <path d="M27 27c-2-2.4 2-4 0-6.4"/>
+    <path d="M34 28.5c-2-2.4 2-4 0-6.4"/>
+  </g>
     </g>
   </g>
 

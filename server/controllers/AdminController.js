@@ -71,7 +71,7 @@ const decideVerification = async (req, res) => {
   const messages = {
     verified: { title: "Your food bank is verified", body: "Restaurants will now see a verified badge when you claim their food." },
     rejected: { title: "We couldn't verify your food bank", body: note },
-    unverified: { title: "Your verification was removed", body: note || "Contact MealDrop if you think this is a mistake." },
+    unverified: { title: "Your verification was removed", body: note || "Contact Ladle if you think this is a mistake." },
   };
   await notify([user._id], { type: "verification", ...messages[decision], link: "/view_profile" });
   return res.status(200).json(adminView(user));

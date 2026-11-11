@@ -94,7 +94,7 @@ const requireFoodbank = (req, res, next) => {
 const requireAdmin = async (req, res, next) => {
   try {
     const user = await require("../models/Users").findById(req.user.id, "isAdmin");
-    if (!user || !user.isAdmin) return res.status(403).json({ msg: "Only MealDrop admins can do this." });
+    if (!user || !user.isAdmin) return res.status(403).json({ msg: "Only Ladle admins can do this." });
     return next();
   } catch (err) {
     return next(err);

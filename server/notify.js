@@ -24,8 +24,8 @@ async function sendEmails(users, { title, body, link }) {
           .sendMail({
             from: emailFrom,
             to: u.email,
-            subject: `MealDrop: ${title}`,
-            text: `${body}\n\n${link ? `Open MealDrop: ${appUrl(link)}\n\n` : ""}You can turn off email alerts on your MealDrop profile.`,
+            subject: `Ladle: ${title}`,
+            text: `${body}\n\n${link ? `Open Ladle: ${appUrl(link)}\n\n` : ""}You can turn off email alerts on your Ladle profile.`,
           })
           .catch((err) => console.error(`Email to user ${u._id} failed:`, err.message))
       )

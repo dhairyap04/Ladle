@@ -9,8 +9,16 @@
   <!-- bag -->
   <path d="M68 68h104l-8 104a8 8 0 0 1-8 7H84a8 8 0 0 1-8-7Z" fill="#E7C796"/>
   <path d="M68 68h104l-2 16H70Z" fill="#D9B27A"/>
-  <path d="M100 104S84 122 84 132a16 16 0 0 0 32 0c0-10-16-28-16-28Z" fill="#1B6B4A" transform="translate(20 0)"/>
-  <path d="M112 132h16a8 8 0 0 1-16 0Z" fill="#FFFFFF"/>
+  <g transform="translate(100.8 106) scale(0.6)">
+<circle cx="32" cy="32" r="31" fill="#1B6B4A"/>
+<path d="M38.5 35 49 12.5" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+<path d="M12 34.5h28a14 14 0 0 1-28 0Z" fill="#FFFFFF"/>
+<g fill="none" stroke="#F08A24" stroke-width="3" stroke-linecap="round">
+    <path d="M20 28.5c-2-2.4 2-4 0-6.4"/>
+    <path d="M27 27c-2-2.4 2-4 0-6.4"/>
+    <path d="M34 28.5c-2-2.4 2-4 0-6.4"/>
+  </g>
+  </g>
   <!-- check badge -->
   <circle cx="178" cy="62" r="26" fill="#1B6B4A" stroke="#FFFFFF" stroke-width="5"/>
   <path d="M166 62l8 8 16-17" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>

@@ -1,6 +1,6 @@
 {
-  "name": "MealDrop",
-  "short_name": "MealDrop",
+  "name": "Ladle",
+  "short_name": "Ladle",
   "description": "Restaurants post surplus food; food banks claim it and pick it up.",
   "start_url": "/main",
   "scope": "/",

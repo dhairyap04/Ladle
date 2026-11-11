@@ -106,7 +106,7 @@ function AuthForm({ history, initialLogin, initialFoodbank }) {
     return (
         <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5 }}>
             <Typography component="h1" variant="h4" sx={{ color: "primary.dark" }}>
-                {isLogin ? "Welcome back" : "Join MealDrop"}
+                {isLogin ? "Welcome back" : "Join Ladle"}
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }}>
                 {isLogin ? "Log in to see your postings and pickups." : "It's free for restaurants and food banks."}

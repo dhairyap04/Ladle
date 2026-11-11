@@ -6,11 +6,11 @@ const { setup, teardown, pickupWindow, signUp } = require("./helpers");
 let admin, bank, donor, bankId;
 
 before(async () => {
-  const ctx = await setup({ env: { ADMIN_EMAILS: "Boss@MealDrop.test" } });
+  const ctx = await setup({ env: { ADMIN_EMAILS: "Boss@Ladle.test" } });
   admin = ctx.agent();
   bank = ctx.agent();
   donor = ctx.agent();
-  await signUp(admin, { name: "Admin", email: "boss@mealdrop.test" });
+  await signUp(admin, { name: "Admin", email: "boss@ladle.test" });
   bankId = (await signUp(bank, { name: "Bank", email: "bank@x.com", isFoodbank: true })).id;
   await signUp(donor, { name: "Cafe", email: "cafe@x.com" });
 });
