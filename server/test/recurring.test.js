@@ -31,10 +31,12 @@ before(async () => {
 after(teardown);
 
 test("zonedTime converts local times across daylight saving", () => {
-  // Edmonton is UTC-6 in summer (MDT) and UTC-7 in winter (MST).
-  assert.strictEqual(recurring.zonedTime("2026-07-01", 1800, TZ).toISOString(), "2026-07-02T00:00:00.000Z");
-  assert.strictEqual(recurring.zonedTime("2026-12-01", 1800, TZ).toISOString(), "2026-12-02T01:00:00.000Z");
-  assert.strictEqual(recurring.zonedTime("2026-12-01", 2400, TZ).toISOString(), "2026-12-02T07:00:00.000Z");
+  // New York: UTC-4 in summer (EDT), UTC-5 in winter (EST). A zone with settled
+  // rules, so the test doesn't depend on how new the runtime's tz data is.
+  const NY = "America/New_York";
+  assert.strictEqual(recurring.zonedTime("2026-07-01", 1800, NY).toISOString(), "2026-07-01T22:00:00.000Z");
+  assert.strictEqual(recurring.zonedTime("2026-12-01", 1800, NY).toISOString(), "2026-12-01T23:00:00.000Z");
+  assert.strictEqual(recurring.zonedTime("2026-12-01", 2400, NY).toISOString(), "2026-12-02T05:00:00.000Z");
 });
 
 test("validation", async () => {
