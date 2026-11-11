@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
-import { Alert, BottomNavigation, BottomNavigationAction, Box, Button, IconButton, Paper, Slide, Snackbar } from "@mui/material";
+import { Alert, BottomNavigation, BottomNavigationAction, Button, GlobalStyles, IconButton, Paper, Slide, Snackbar } from "@mui/material";
 import CloudOffRoundedIcon from "@mui/icons-material/CloudOffRounded";
 import InstallMobileRoundedIcon from "@mui/icons-material/InstallMobileRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -92,7 +92,11 @@ export const BottomNav = ({ user }) => {
   return (
     <>
       {/* Keeps page content clear of the fixed bar. */}
-      <Box sx={{ display: { xs: "block", sm: "none" }, height: "calc(64px + env(safe-area-inset-bottom))" }} />
+      <GlobalStyles
+        styles={(theme) => ({
+          body: { [theme.breakpoints.down("sm")]: { paddingBottom: "calc(64px + env(safe-area-inset-bottom))" } },
+        })}
+      />
       <Paper
         component="nav"
         aria-label="Main"

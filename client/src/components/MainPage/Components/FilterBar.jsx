@@ -48,6 +48,9 @@ export function filterParams(filters, device) {
   return params;
 }
 
+// Lets a select show its "Any …" option instead of looking empty.
+const SHOW_EMPTY = { SelectProps: { displayEmpty: true }, InputLabelProps: { shrink: true } };
+
 const dateInput = (offsetDays) => {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
@@ -72,11 +75,11 @@ const FilterBar = ({ filters, onChange, isFoodbank, device, onUseDevice, locatin
         InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon /></InputAdornment> }}
       />
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(3, 1fr)" }, gap: 1.5, mt: 1.5 }}>
-        <TextField select size="small" label="Distance" value={filters.radiusKm} onChange={(e) => set("radiusKm")(e.target.value)}>
+        <TextField select size="small" label="Distance" value={filters.radiusKm} {...SHOW_EMPTY} onChange={(e) => set("radiusKm")(e.target.value)}>
           <MenuItem value="">Any distance</MenuItem>
           {[2, 5, 10, 25].map((km) => <MenuItem key={km} value={String(km)}>Within {km} km</MenuItem>)}
         </TextField>
-        <TextField select size="small" label="Pickup day" value={filters.date} onChange={(e) => set("date")(e.target.value)}>
+        <TextField select size="small" label="Pickup day" value={filters.date} {...SHOW_EMPTY} onChange={(e) => set("date")(e.target.value)}>
           <MenuItem value="">Any day</MenuItem>
           <MenuItem value={dateInput(0)}>Today</MenuItem>
           <MenuItem value={dateInput(1)}>Tomorrow</MenuItem>
