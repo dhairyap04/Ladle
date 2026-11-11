@@ -1,6 +1,14 @@
+/* The app is designed for light mode only. Without an explicit background,
+   browsers in dark mode showed the light-mode text on a dark page. */
+:root {
+    color-scheme: light;
+}
+
 body {
     padding: 0;
     margin: 0;
+    background-color: #fff;
+    color: #000;
 }
 
 .App {
