@@ -27,6 +27,7 @@ import { ROLE_LABELS, roleOf } from "../../roles";
 import ReliabilityBadge from "../Shared/ReliabilityBadge";
 import { plural } from "../../plural";
 import usePageTitle from "../../usePageTitle";
+import AdminDeliveries from "./AdminDeliveries";
 
 const STATUS_CHIP = {
   unverified: { label: "Unverified", sx: { bgcolor: "#EEECE8", color: "#4F5753" } },
@@ -128,6 +129,11 @@ const AdminPage = () => {
 
   const load = useCallback(async () => {
     try {
+      if (tab === "deliveries") {
+        setOverview((await api.get("admin/overview")).data);
+        setError("");
+        return;
+      }
       const params = tab === "pending"
         ? { verification: "pending" }
         : tab === "flagged"
@@ -169,7 +175,7 @@ const AdminPage = () => {
       <AppHeader user={user} />
       <Container component="main" maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
         <Typography component="h1" variant="h4" sx={{ color: "primary.dark" }}>Admin</Typography>
-        <Typography color="text.secondary" sx={{ mb: 3 }}>Verify food banks and keep an eye on activity.</Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>Verify food banks, review delivery problems and keep an eye on activity.</Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         {overview && (
@@ -189,10 +195,13 @@ const AdminPage = () => {
           <Tab value="restaurant" label="Restaurants" />
           <Tab value="driver" label="Drivers" />
           <Tab value="flagged" label={`Needs review${overview && overview.flagged ? ` (${overview.flagged})` : ""}`} />
+          <Tab value="deliveries" label={`Deliveries${overview && overview.deliveriesToReview ? ` (${overview.deliveriesToReview})` : ""}`} />
           <Tab value="all" label="Everyone" />
         </Tabs>
 
-        {tab !== "pending" && (
+        {tab === "deliveries" && <AdminDeliveries onChanged={load} />}
+
+        {!["pending", "deliveries"].includes(tab) && (
           <TextField
             size="small"
             fullWidth
@@ -204,7 +213,7 @@ const AdminPage = () => {
           />
         )}
 
-        <Stack spacing={1.5}>
+        <Stack spacing={1.5} sx={{ display: tab === "deliveries" ? "none" : undefined }}>
           {users && users.length === 0 && (
             <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
               {tab === "pending"
