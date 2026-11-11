@@ -6,7 +6,7 @@ import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
 
 import AppHeader from "../Shared/AppHeader";
 import PostingTile from "./Components/PostingTile";
-import SimpleMap from "./Components/GoogleMap";
+import SimpleMap, { mapsEnabled } from "./Components/GoogleMap";
 import CreatePostingModal from "./Components/CreatePosting";
 import FilterBar, { EMPTY_FILTERS, filterParams } from "./Components/FilterBar";
 import ScheduleList from "./Components/ScheduleList";
@@ -45,7 +45,19 @@ const Stat = ({ value, label }) => (
 // Restaurants, food banks and guests browse postings; drivers get their own home.
 const MainPage = () => {
   const user = useAuthUser();
-  if (user && roleOf(user) === "driver") return <DriverHome user={user} />;
+  // Wait until we know who's signed in, so drivers don't see the postings page flash first.
+  if (user === undefined) {
+    return (
+      <>
+        <AppHeader user={undefined} />
+        <Container maxWidth="lg" component="main" sx={{ py: { xs: 3, md: 5 } }}>
+          <Skeleton variant="text" width="40%" height={56} />
+          <Skeleton variant="rounded" height={120} sx={{ borderRadius: 4, mt: 2 }} />
+        </Container>
+      </>
+    );
+  }
+  if (roleOf(user) === "driver") return <DriverHome user={user} />;
   return <PostingsHome user={user} />;
 };
 
@@ -248,7 +260,7 @@ const PostingsHome = ({ user }) => {
           </Alert>
         )}
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) minmax(0, 1fr)" }, gap: { xs: 3, md: 4 }, alignItems: "start" }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: mapsEnabled ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 760px)" }, justifyContent: "center", gap: { xs: 3, md: 4 }, alignItems: "start" }}>
           <Box>
             {isRestaurant ? (
               <>
@@ -258,7 +270,7 @@ const PostingsHome = ({ user }) => {
               </>
             ) : <>{openList}{mineList}</>}
           </Box>
-          <Paper
+          {mapsEnabled && <Paper
             variant="outlined"
             sx={{
               position: { md: "sticky" },
@@ -270,7 +282,7 @@ const PostingsHome = ({ user }) => {
             }}
           >
             <SimpleMap latlng={latlng} />
-          </Paper>
+          </Paper>}
         </Box>
       </Container>
     </>

@@ -43,7 +43,7 @@ import RatingCard from './RatingCard';
 const DISPUTE_HOURS = 48;
 import StatusChip from '../Shared/StatusChip';
 import { FOOD_TYPES, STORAGE, allergenSummary, photoUrl } from '../../food';
-import SimpleMap from '../MainPage/Components/GoogleMap';
+import SimpleMap, { mapsEnabled } from '../MainPage/Components/GoogleMap';
 import PostingModal from '../MainPage/Components/CreatePosting';
 import usePageTitle from "../../usePageTitle";
 
@@ -341,9 +341,11 @@ const ViewPost = () => {
             {post && user && (isOwner || roleOf(user) === "foodbank") && (
               <MessagesPanel postingId={post._id} user={user} isOwner={Boolean(isOwner)} />
             )}
-            <Paper variant="outlined" sx={{ height: { xs: 260, md: 360 }, borderRadius: 5, overflow: "hidden" }}>
-              <SimpleMap latlng={latlng} />
-            </Paper>
+            {mapsEnabled && (
+              <Paper variant="outlined" sx={{ height: { xs: 260, md: 360 }, borderRadius: 5, overflow: "hidden" }}>
+                <SimpleMap latlng={latlng} />
+              </Paper>
+            )}
           </Stack>
         </Box>
       </Container>
