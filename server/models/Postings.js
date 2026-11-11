@@ -21,6 +21,11 @@ const FoodPostingsSchema = new mongoose.Schema(
     donorId: { type: mongoose.Schema.Types.ObjectId, ref: "Users", index: true },
     fromRestaurantName: { type: String, required: true },
     fromRestaurantAddress: { type: String, required: true, trim: true },
+    // Geocoded pickup address; missing when geocoding is off or failed.
+    location: {
+      type: { type: String, enum: ["Point"] },
+      coordinates: { type: [Number] }, // [longitude, latitude]
+    },
     pickupTimeBegin: pickupTime,
     pickupTimeEnd: pickupTime,
     // Calendar day of the pickup in the restaurant's local time, "YYYY-MM-DD".
@@ -46,6 +51,9 @@ const FoodPostingsSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// 2dsphere indexes skip documents without a location.
+FoodPostingsSchema.index({ location: "2dsphere" });
 
 const mongoFoodPostings = mongoose.model("FoodPostings", FoodPostingsSchema, "FoodPostings");
 mongoFoodPostings.POSTING_STATUSES = POSTING_STATUSES;

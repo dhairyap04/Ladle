@@ -65,7 +65,10 @@ const PostingTile = ({ postingData: posting, showStatus }) => {
             </Stack>
             <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.5, color: "text.secondary" }}>
               <PlaceRoundedIcon sx={{ fontSize: 18 }} />
-              <Typography variant="body2" noWrap>{posting.fromRestaurantAddress}</Typography>
+              <Typography variant="body2" noWrap>
+                {posting.distanceKm !== undefined && <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>{posting.distanceKm} km · </Box>}
+                {posting.fromRestaurantAddress}
+              </Typography>
             </Stack>
             {summary && (
               <Typography variant="body2" color="text.secondary" noWrap sx={{ mt: 0.5 }}>

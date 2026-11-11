@@ -1,21 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { Alert, Box, Button, Container, Paper, Skeleton, Stack, Typography } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
-import Geocode from "react-geocode";
 
 import AppHeader from "../Shared/AppHeader";
 import PostingTile from "./Components/PostingTile";
 import SimpleMap from "./Components/GoogleMap";
 import CreatePostingModal from "./Components/CreatePosting";
+import FilterBar, { EMPTY_FILTERS, filterParams } from "./Components/FilterBar";
+import { mapPoints } from "../../mapPoints";
 import api from "../../api";
 import useAuthUser from "../../useAuthUser";
 
-// Google Geocoding settings, used to put postings on the map.
-Geocode.setApiKey(import.meta.env.REACT_APP_GCP_KEY);
-Geocode.setLanguage("en");
-Geocode.setRegion("ca");
 
 const EmptyState = ({ children }) => (
   <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, borderStyle: "dashed", textAlign: "center", bgcolor: "transparent" }}>
@@ -49,28 +46,53 @@ const MainPage = () => {
   const [latlng, setLatlng] = useState([]);
   const [creating, setCreating] = useState(false);
 
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [device, setDevice] = useState(null); // { lat, lng } from the browser
+  const [locating, setLocating] = useState(false);
+  const [origin, setOrigin] = useState("none"); // where distances are measured from
+  const [locationError, setLocationError] = useState("");
+  const requestId = useRef(0);
+
   const loadPostings = useCallback(async () => {
+    const id = ++requestId.current;
     try {
-      const res = await api.get("posting/all");
+      const res = await api.get("posting/all", { params: filterParams(filters, device) });
+      if (id !== requestId.current) return; // a newer search has started
       setPostings(res.data);
+      setOrigin(res.headers["x-search-origin"] || "none");
       setLoadError(false);
-      const points = await Promise.all(
-        res.data.map((posting) =>
-          Geocode.fromAddress(posting.fromRestaurantAddress)
-            .then((geo) => {
-              const { lat, lng } = geo.results[0].geometry.location;
-              return { lat, lng, name: posting.fromRestaurantName };
-            })
-            .catch(() => null) // an address Google can't find just has no pin
-        )
-      );
-      setLatlng(points.filter(Boolean));
+      const points = await mapPoints(res.data);
+      if (id === requestId.current) setLatlng(points);
     } catch (err) {
       console.error("Posting retrieval failed", err);
       setPostings([]);
       setLoadError(true);
     }
-  }, []);
+  }, [filters, device]);
+
+  const useDeviceLocation = () => {
+    if (device) {
+      setDevice(null);
+      return;
+    }
+    if (!navigator.geolocation) {
+      setLocationError("Your browser can't share its location.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setDevice({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocationError("");
+        setLocating(false);
+      },
+      () => {
+        setLocationError("We couldn't get your location. Check your browser's location permission.");
+        setLocating(false);
+      },
+      { timeout: 10000, maximumAge: 300000 }
+    );
+  };
 
   // A restaurant's own postings, or the pickups a food bank has claimed.
   const loadMine = useCallback(async () => {
@@ -82,7 +104,11 @@ const MainPage = () => {
     }
   }, []);
 
-  useEffect(() => { loadPostings(); }, [loadPostings]);
+  // Wait for typing to pause before searching.
+  useEffect(() => {
+    const timer = setTimeout(loadPostings, filters.q ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [loadPostings, filters.q]);
   useEffect(() => { if (user) loadMine(); }, [user, loadMine]);
 
   const handleCreated = () => {
@@ -99,12 +125,30 @@ const MainPage = () => {
       title={isRestaurant ? "All open pickups" : "Open pickups"}
       subtitle={isRestaurant ? "What's currently available to food banks in the area" : "Claim one to reserve it for your food bank"}
     >
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        isFoodbank={Boolean(user && user.isFoodbank)}
+        device={device}
+        onUseDevice={useDeviceLocation}
+        locating={locating}
+      />
+      {locationError && <Alert severity="warning" onClose={() => setLocationError("")}>{locationError}</Alert>}
+      {(filters.radiusKm || filters.sort === "distance") && origin === "none" && (
+        <Alert severity="info">
+          To search by distance, use your location{user ? <> or <RouterLink to="/view_profile">add your address to your profile</RouterLink></> : ""}.
+        </Alert>
+      )}
       {postings === null ? (
         [0, 1, 2].map((i) => <Skeleton key={i} variant="rounded" height={96} sx={{ borderRadius: 4 }} />)
       ) : loadError ? (
         <Alert severity="error">Couldn&apos;t load postings. Please refresh the page.</Alert>
       ) : postings.length === 0 ? (
-        <EmptyState>No food is waiting for pickup right now. Check back soon.</EmptyState>
+        <EmptyState>
+          {JSON.stringify(filters) === JSON.stringify(EMPTY_FILTERS)
+            ? "No food is waiting for pickup right now. Check back soon."
+            : "Nothing matches these filters. Try widening your search."}
+        </EmptyState>
       ) : (
         postings.map((posting) => <PostingTile key={posting._id} postingData={posting} />)
       )}

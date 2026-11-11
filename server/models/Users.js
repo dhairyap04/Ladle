@@ -5,6 +5,10 @@ const UsersSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     address: { type: String },
+    location: {
+      type: { type: String, enum: ["Point"] },
+      coordinates: { type: [Number] }, // [longitude, latitude]
+    },
     openHours: { type: String },
     // Strings keep formatting such as leading zeros, dashes or "RR0001".
     phoneNumber: { type: String },

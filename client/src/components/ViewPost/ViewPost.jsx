@@ -27,12 +27,12 @@ import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
 import LunchDiningRoundedIcon from '@mui/icons-material/LunchDiningRounded';
 import AcUnitRoundedIcon from '@mui/icons-material/AcUnitRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import Geocode from "react-geocode";
 
 // Root imports
 import api, { errorMessage } from '../../api';
 import { formatPickupDate, formatPickupTime, formatPickupWindow } from '../../time';
 import AppHeader from '../Shared/AppHeader';
+import { mapPoints } from '../../mapPoints';
 import StatusChip from '../Shared/StatusChip';
 import { FOOD_TYPES, STORAGE, allergenSummary, photoUrl } from '../../food';
 import SimpleMap from '../MainPage/Components/GoogleMap';
@@ -88,12 +88,7 @@ const ViewPost = () => {
     api.get(`posting/one/${id}`)
       .then(res => {
         setPost(res.data);
-        Geocode.fromAddress(res.data.fromRestaurantAddress)
-          .then((geo) => {
-            const { lat, lng } = geo.results[0].geometry.location;
-            setLatlng([{ lat, lng, name: res.data.fromRestaurantName }]);
-          })
-          .catch(() => {});
+        mapPoints([res.data]).then(setLatlng);
       })
       .catch(err => setLoadError(errorMessage(err, "Couldn't load this posting.")));
 
@@ -255,12 +250,7 @@ const ViewPost = () => {
           onSaved={(updated) => {
             setPost(updated);
             setEditing(false);
-            Geocode.fromAddress(updated.fromRestaurantAddress)
-              .then((geo) => {
-                const { lat, lng } = geo.results[0].geometry.location;
-                setLatlng([{ lat, lng, name: updated.fromRestaurantName }]);
-              })
-              .catch(() => setLatlng([]));
+            mapPoints([updated]).then(setLatlng);
           }}
         />
       )}

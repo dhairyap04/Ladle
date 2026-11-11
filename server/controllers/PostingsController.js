@@ -4,6 +4,7 @@ const mongoPostingPhotos = require("../models/PostingPhotos");
 const mongoUsers = require("../models/Users");
 const { FOOD_TYPES, ALLERGENS, STORAGE } = require("../constants");
 const { fitProblems } = require("../matching");
+const { geocodeToPoint, distanceKm } = require("../geocode");
 
 // Postings created before the status field existed have no status and count as open.
 const OPEN_FILTER = { $or: [{ status: "open" }, { status: { $exists: false } }] };
@@ -169,23 +170,98 @@ const createPosting = async (req, res) => {
     fromRestaurantName: req.user.name,
     status: "open",
   });
+  posting.location = await geocodeToPoint(posting.fromRestaurantAddress);
   await applyPhotoChange(posting, req.body);
   await posting.save();
   return res.status(201).json(posting);
 };
 
-// For a signed-in food bank, each posting also gets `fitProblems`: the ways it
-// doesn't suit the food bank's receiving profile (empty when it fits).
-const withFit = async (req, postings) => {
-  if (!req.user || !req.user.isFoodbank) return postings.map((p) => p.toJSON());
-  const foodBank = await mongoUsers.findById(req.user.id);
-  return postings.map((p) => ({ ...p.toJSON(), fitProblems: foodBank ? fitProblems(p, foodBank) : [] }));
+const csv = (value) => (typeof value === "string" && value ? value.split(",").map((v) => v.trim()).filter(Boolean) : []);
+
+// Builds the MongoDB filter for GET /posting/all from its query string.
+// Distance, fit and sorting are applied afterwards in JavaScript.
+const searchFilter = (query) => {
+  const and = [OPEN_FILTER];
+  const foodTypes = csv(query.foodTypes).filter((t) => FOOD_TYPES.includes(t));
+  if (foodTypes.length) and.push({ foodTypes: { $in: foodTypes } });
+  const storage = csv(query.storage).filter((t) => STORAGE.includes(t));
+  if (storage.length) {
+    // Postings saved before storage existed count as room temperature.
+    and.push(storage.includes("ambient")
+      ? { $or: [{ storage: { $in: storage } }, { storage: { $exists: false } }] }
+      : { storage: { $in: storage } });
+  }
+  const avoid = csv(query.excludeAllergens).filter((a) => ALLERGENS.includes(a));
+  if (avoid.length) and.push({ allergens: { $nin: avoid } });
+  if (query.allergenInfo === "1") and.push({ "allergens.0": { $exists: true } });
+  if (/^\d{4}-\d{2}-\d{2}$/.test(query.date || "")) and.push({ pickupDate: query.date });
+  const after = parsePickupTime(query.pickupAfter);
+  if (after !== null && query.pickupAfter !== undefined) and.push({ pickupTimeEnd: { $gt: after } });
+  const before = parsePickupTime(query.pickupBefore);
+  if (before !== null && query.pickupBefore !== undefined) and.push({ pickupTimeBegin: { $lt: before } });
+  if (typeof query.q === "string" && query.q.trim()) {
+    const pattern = new RegExp(query.q.trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    and.push({ $or: [{ fromRestaurantName: pattern }, { notes: pattern }, { quantity: pattern }, { fromRestaurantAddress: pattern }] });
+  }
+  return { $and: and };
 };
 
+// Where distances are measured from: ?lat=&lng= (e.g. the browser's location),
+// otherwise the signed-in user's geocoded profile address.
+const searchOrigin = (query, profile) => {
+  const lat = Number(query.lat);
+  const lng = Number(query.lng);
+  if (query.lat !== undefined && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+    return { coordinates: [lng, lat], source: "device" };
+  }
+  if (profile && profile.location && profile.location.coordinates && profile.location.coordinates.length === 2) {
+    return { coordinates: profile.location.coordinates, source: "profile" };
+  }
+  return null;
+};
+
+// GET /posting/all — open postings, with optional filters:
+//   lat, lng, radiusKm        distance from a point (or the profile address)
+//   date=YYYY-MM-DD           pickup date
+//   pickupAfter, pickupBefore pickup window overlaps these times (HH:MM)
+//   foodTypes, storage, excludeAllergens   comma-separated lists
+//   allergenInfo=1            only postings that list their allergens
+//   fitsMe=1                  only postings that suit the food bank's profile
+//   q                         text search
+//   sort=newest|soonest|distance
+// Each posting gets distanceKm when both ends have coordinates, and, for a
+// signed-in food bank, fitProblems (empty when it suits their profile).
 const getPostings = async (req, res) => {
   await expireStalePostings();
-  const postings = await mongoFoodPostings.find(OPEN_FILTER).sort({ createdAt: -1 });
-  return res.status(200).json(await withFit(req, postings));
+  const query = req.query || {};
+  const profile = req.user ? await mongoUsers.findById(req.user.id) : null;
+  const origin = searchOrigin(query, profile);
+  const radiusKm = Number(query.radiusKm);
+
+  const postings = await mongoFoodPostings.find(searchFilter(query)).sort({ createdAt: -1 });
+  let results = postings.map((p) => {
+    const json = p.toJSON();
+    if (origin && p.location && p.location.coordinates && p.location.coordinates.length === 2) {
+      json.distanceKm = Math.round(distanceKm(origin.coordinates, p.location.coordinates) * 10) / 10;
+    }
+    if (profile && profile.isFoodbank) json.fitProblems = fitProblems(p, profile);
+    return json;
+  });
+
+  if (origin && radiusKm > 0) {
+    results = results.filter((p) => p.distanceKm !== undefined && p.distanceKm <= radiusKm);
+  }
+  if (query.fitsMe === "1" && profile && profile.isFoodbank) {
+    results = results.filter((p) => p.fitProblems.length === 0);
+  }
+  if (query.sort === "distance") {
+    results.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+  } else if (query.sort === "soonest") {
+    results.sort((a, b) => new Date(a.pickupEndsAt || 8.64e15) - new Date(b.pickupEndsAt || 8.64e15));
+  }
+
+  res.set("X-Search-Origin", origin ? origin.source : "none");
+  return res.status(200).json(results);
 };
 
 // A donor's own postings, or the pickups a food bank has claimed.
@@ -277,7 +353,11 @@ const editPosting = async (req, res) => {
   if (!posting) return undefined;
   const { values, error } = parsePostingInput(req.body);
   if (error) return res.status(400).json({ msg: error });
+  const addressChanged = values.fromRestaurantAddress !== posting.fromRestaurantAddress;
   posting.set(values);
+  if (addressChanged || !posting.location) {
+    posting.location = await geocodeToPoint(posting.fromRestaurantAddress);
+  }
   await applyPhotoChange(posting, req.body);
   await posting.save();
   return res.status(200).json(posting);

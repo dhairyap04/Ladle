@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const mongoUsers = require("../models/Users");
 const { setAuthCookies, clearAuthCookies } = require("./authHelper");
 const { FOOD_TYPES } = require("../constants");
+const { geocodeToPoint } = require("../geocode");
 
 const BCRYPT_ROUNDS = 12;
 const BCRYPT_HASH = /^\$2[aby]\$\d{2}\$/;
@@ -45,6 +46,7 @@ const publicUser = (user) => ({
   receivingDays: user.receivingDays || [],
   maxPickupKg: user.maxPickupKg ?? null,
   serviceRadiusKm: user.serviceRadiusKm ?? null,
+  hasLocation: Boolean(user.location && user.location.coordinates && user.location.coordinates.length),
 });
 
 const registerUser = async (req, res) => {
@@ -131,6 +133,15 @@ const updateUser = async (req, res) => {
       if (value === undefined) $unset[field] = "";
       else $set[field] = value;
     }
+  }
+
+  // Geocode a new address so distance search can measure from it.
+  if ("address" in $set) {
+    const location = await geocodeToPoint($set.address);
+    if (location) $set.location = location;
+    else $unset.location = "";
+  } else if ("address" in $unset) {
+    $unset.location = "";
   }
 
   const update = {};

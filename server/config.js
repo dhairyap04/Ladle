@@ -18,6 +18,8 @@ module.exports = {
   mongoUri: required("MONGO_URI"),
   accessTokenSecret: required("JWT_ACCESS_SECRET"),
   refreshTokenSecret: required("JWT_REFRESH_SECRET"),
+  // Optional server-side key for the Google Geocoding API (distance search).
+  googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "",
   // Comma-separated list of front-end origins allowed to call the API with cookies.
   clientOrigins: (process.env.CLIENT_ORIGINS || "http://localhost:3000")
     .split(",")
