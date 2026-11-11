@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const mongoFoodPostings = require("../models/Postings");
 const mongoPostingPhotos = require("../models/PostingPhotos");
+const { parsePhoto } = require("../photo");
 const mongoUsers = require("../models/Users");
 const { FOOD_TYPES, ALLERGENS, STORAGE } = require("../constants");
 const { fitProblems } = require("../matching");
@@ -43,8 +44,6 @@ const alertFoodBanks = async (posting) => {
 // Postings created before the status field existed have no status and count as open.
 const OPEN_FILTER = { $or: [{ status: "open" }, { status: { $exists: false } }] };
 const MAX_DAYS_AHEAD = 60;
-const MAX_PHOTO_BYTES = 1.5 * 1024 * 1024;
-const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // Keeps only known values from a list, without duplicates.
 const pickKnown = (list, allowed) =>
@@ -79,17 +78,6 @@ const parseFoodDetails = (body) => {
 
   const quantity = typeof body.quantity === "string" ? body.quantity.trim().slice(0, 120) : "";
   return { values: { foodTypes, allergens, storage, preparedAt, quantity, estimatedWeightKg } };
-};
-
-// "data:image/jpeg;base64,..." -> { contentType, data } or { error }.
-const parsePhoto = (dataUrl) => {
-  const match = typeof dataUrl === "string" && /^data:(image\/[a-z]+);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
-  if (!match || !PHOTO_TYPES.includes(match[1])) {
-    return { error: "Photos must be JPEG, PNG or WebP images." };
-  }
-  const data = Buffer.from(match[2], "base64");
-  if (data.length > MAX_PHOTO_BYTES) return { error: "That photo is too large. Please use one under 1.5 MB." };
-  return { contentType: match[1], data };
 };
 
 // Saves, replaces or removes a posting's photo according to the request body.

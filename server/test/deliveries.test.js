@@ -93,9 +93,13 @@ test("collect then deliver; the posting becomes picked up and reliability is rec
   const [{ _id }] = (await driver.get("/delivery/mine")).body;
   assert.strictEqual((await driver.post(`/delivery/${_id}/delivered`)).status, 409, "must collect first");
   assert.strictEqual((await driver2.post(`/delivery/${_id}/picked-up`)).status, 403);
-  assert.strictEqual((await driver.post(`/delivery/${_id}/picked-up`)).body.status, "picked_up");
+  const pickupCode = (await donor.get(`/delivery/for-posting/${postingId}`)).body.handoffCode;
+  assert.strictEqual((await driver.post(`/delivery/${_id}/picked-up`).send({ code: pickupCode })).body.status, "picked_up");
   assert.strictEqual((await Postings.findById(postingId)).status, "picked_up");
-  assert.strictEqual((await driver.post(`/delivery/${_id}/delivered`)).body.status, "delivered");
+  const dropoffCode = (await bank.get(`/delivery/for-posting/${postingId}`)).body.handoffCode;
+  const done = await driver.post(`/delivery/${_id}/delivered`).send({ code: dropoffCode });
+  assert.strictEqual(done.body.status, "delivered");
+  assert.strictEqual(done.body.receipt, "confirmed");
   const rel = await require("../reliability").summary((await driver.get("/user/info")).body.user.id);
   assert.strictEqual(rel.completed, 1);
 });

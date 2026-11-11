@@ -8,6 +8,9 @@ const { distanceKm } = require("../geocode");
 const { driverProblems } = require("../matching");
 const reliability = require("../reliability");
 const mongoMessages = require("../models/Messages");
+const mongoDeliveryPhotos = require("../models/DeliveryPhotos");
+const handoff = require("../handoff");
+const { parsePhoto } = require("../photo");
 
 const MISSED_AFTER_HOURS = 2; // accepted but not collected this long after the window -> missed
 const MAX_DRIVER_ALERTS = 100;
@@ -37,12 +40,14 @@ async function expireDeliveries() {
       });
     }
   }
+  await handoff.processReceipts(now);
 }
 
 // What a viewer may see: everyone sees the job; contact details only go to
 // the people involved once a driver has accepted.
 async function view(delivery, viewer) {
   const json = delivery.toJSON();
+  for (const key of ["pickupCode", "dropoffCode", "pickupCodeTries", "dropoffCodeTries"]) delete json[key];
   const ids = [delivery.foodBankId, delivery.donorId, delivery.driverId].filter(Boolean);
   const people = await mongoUsers.find({ _id: { $in: ids } }, "name phoneNumber vehicle");
   const byId = Object.fromEntries(people.map((p) => [String(p._id), p]));
@@ -61,7 +66,17 @@ async function view(delivery, viewer) {
     if (String(delivery.foodBankId) === viewerId || String(delivery.donorId) === viewerId) {
       json.driverReliability = await reliability.summary(delivery.driverId);
     }
+    // The code the viewer hands to the driver: the restaurant's at pickup,
+    // the food bank's at drop-off.
+    const isDonor = delivery.donorId && String(delivery.donorId) === viewerId;
+    const isFoodBank = String(delivery.foodBankId) === viewerId;
+    if ((isDonor && delivery.status === "accepted") || (isFoodBank && ["accepted", "picked_up"].includes(delivery.status))) {
+      const codes = await mongoDeliveries.findById(delivery._id).select("+pickupCode +dropoffCode");
+      const code = codes && (isDonor ? codes.pickupCode : codes.dropoffCode);
+      if (code) json.handoffCode = code;
+    }
   }
+  if (isParty) Object.assign(json, handoff.verificationActions(delivery, viewerId));
   return json;
 }
 
@@ -167,13 +182,14 @@ const getForPosting = async (req, res) => {
   return res.status(200).json(await view(delivery, req.user));
 };
 
-const load = async (req, res) => {
+const load = async (req, res, select) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     notFound(res);
     return null;
   }
   await expireDeliveries();
-  const delivery = await mongoDeliveries.findById(req.params.id);
+  const query = mongoDeliveries.findById(req.params.id);
+  const delivery = await (select ? query.select(select) : query);
   if (!delivery) notFound(res);
   return delivery;
 };
@@ -193,7 +209,20 @@ const acceptDelivery = async (req, res) => {
   if (!existing) return undefined;
   const delivery = await mongoDeliveries.findOneAndUpdate(
     { _id: existing._id, status: "requested" },
-    { $set: { status: "accepted", driverId: req.user.id, driverName: req.user.name, acceptedAt: new Date() } },
+    {
+      $set: {
+        status: "accepted",
+        driverId: req.user.id,
+        driverName: req.user.name,
+        acceptedAt: new Date(),
+        // Fresh codes for each driver, so one read out to a driver who later
+        // gave the job back can't be reused.
+        pickupCode: handoff.newCode(),
+        dropoffCode: handoff.newCode(),
+        pickupCodeTries: 0,
+        dropoffCodeTries: 0,
+      },
+    },
     { new: true }
   );
   if (!delivery) return res.status(409).json({ msg: "Another driver has already taken this delivery, or it's no longer needed." });
@@ -201,8 +230,8 @@ const acceptDelivery = async (req, res) => {
   return res.status(200).json(await view(delivery, req.user));
 };
 
-const loadOwnJob = async (req, res, allowed) => {
-  const delivery = await load(req, res);
+const loadOwnJob = async (req, res, allowed, select) => {
+  const delivery = await load(req, res, select);
   if (!delivery) return null;
   if (!delivery.driverId || String(delivery.driverId) !== req.user.id) {
     res.status(403).json({ msg: "This isn't your delivery." });
@@ -239,33 +268,224 @@ const releaseDelivery = async (req, res) => {
   return res.status(200).json(await view(delivery, req.user));
 };
 
-// POST /delivery/:id/picked-up — the driver has the food. The posting counts
-// as picked up from the restaurant.
+// Checks the driver's proof for a handoff ({ code } or { photo }, plus an
+// optional { location }) and records it on the delivery. Sends the error itself
+// and returns null when the proof isn't good enough.
+async function takeHandoff(req, res, stage) {
+  const delivery = await loadOwnJob(
+    req,
+    res,
+    stage === "pickup" ? ["accepted"] : ["picked_up"],
+    `+${stage}Code +${stage}CodeTries`
+  );
+  if (!delivery) return null;
+  const body = req.body || {};
+  const code = typeof body.code === "string" ? body.code.replace(/\s/g, "") : "";
+  const who = stage === "pickup" ? "the restaurant" : "the food bank";
+
+  let method = "photo";
+  if (code) {
+    if (delivery[`${stage}CodeTries`] >= handoff.MAX_CODE_TRIES) {
+      res.status(429).json({ msg: "Too many wrong codes. Add a photo of the food instead." });
+      return null;
+    }
+    if (!handoff.codesMatch(delivery[`${stage}Code`], code)) {
+      const after = await mongoDeliveries.findOneAndUpdate(
+        { _id: delivery._id },
+        { $inc: { [`${stage}CodeTries`]: 1 } },
+        { new: true, projection: { [`${stage}CodeTries`]: 1 } }
+      );
+      const left = handoff.MAX_CODE_TRIES - after[`${stage}CodeTries`];
+      res.status(400).json({
+        msg: left > 0
+          ? `That code doesn't match. Check it with ${who} (${left} ${left === 1 ? "try" : "tries"} left).`
+          : "That code doesn't match. Add a photo of the food instead.",
+        triesLeft: Math.max(0, left),
+      });
+      return null;
+    }
+    method = "code";
+  } else if (!body.photo) {
+    res.status(400).json({ msg: `Enter the code from ${who}, or add a photo of the food.` });
+    return null;
+  }
+
+  let photo = null;
+  if (body.photo) {
+    photo = parsePhoto(body.photo);
+    if (photo.error) {
+      res.status(400).json({ msg: photo.error });
+      return null;
+    }
+    await mongoDeliveryPhotos.findOneAndUpdate(
+      { deliveryId: delivery._id, stage },
+      { contentType: photo.contentType, data: photo.data },
+      { upsert: true }
+    );
+  }
+
+  const now = new Date();
+  const place = handoff.checkLocation(body.location, stage === "pickup" ? delivery.pickupLocation : delivery.dropoffLocation);
+  delivery[`${stage}Proof`] = { at: now, method, ...place, hasPhoto: Boolean(photo) };
+  const flags = new Set(delivery.flags || []);
+  if (place.location === "far") flags.add(`${stage}_far`);
+  if (stage === "dropoff" && handoff.tooFast(delivery, now)) flags.add("too_fast");
+  if (flags.size) delivery.flags = [...flags];
+  return { delivery, method, now };
+}
+
+// POST /delivery/:id/picked-up { code | photo, location? } — the driver has
+// the food. The posting counts as picked up from the restaurant.
 const markCollected = async (req, res) => {
-  const delivery = await loadOwnJob(req, res, ["accepted"]);
-  if (!delivery) return undefined;
+  const taken = await takeHandoff(req, res, "pickup");
+  if (!taken) return undefined;
+  const { delivery, method, now } = taken;
   delivery.status = "picked_up";
-  delivery.pickedUpAt = new Date();
+  delivery.pickedUpAt = now;
   await delivery.save();
   await mongoFoodPostings.updateOne(
     { _id: delivery.postingId, status: "claimed" },
     { $set: { status: "picked_up", pickedUpAt: delivery.pickedUpAt } }
   );
   await reliability.record(delivery.foodBankId, "pickup_completed", { postingId: delivery.postingId });
-  await tellParties(delivery, `${req.user.name} collected the food from ${delivery.restaurantName}`, `On the way to ${delivery.foodBankName}.`);
+  await notify([delivery.foodBankId], {
+    type: "delivery",
+    title: `${req.user.name} collected the food from ${delivery.restaurantName}`,
+    body: `On the way to you. Have your drop-off code ready.`,
+    link: `/view_post/${delivery.postingId}`,
+    postingId: delivery.postingId,
+  });
+  if (delivery.donorId) {
+    await notify([delivery.donorId], {
+      type: "delivery",
+      title: `${req.user.name} collected the food`,
+      body: method === "code"
+        ? `Confirmed with your handoff code. On the way to ${delivery.foodBankName}.`
+        : `They didn't use your handoff code, so they added a photo. If they didn't collect it, report it on the posting.`,
+      link: `/view_post/${delivery.postingId}`,
+      postingId: delivery.postingId,
+    });
+  }
   return res.status(200).json(await view(delivery, req.user));
 };
 
-// POST /delivery/:id/delivered
+// POST /delivery/:id/delivered { code | photo, location? }
+// With the food bank's code the delivery is confirmed straight away; with a
+// photo it waits for the food bank to confirm.
 const markDelivered = async (req, res) => {
-  const delivery = await loadOwnJob(req, res, ["picked_up"]);
-  if (!delivery) return undefined;
+  const taken = await takeHandoff(req, res, "dropoff");
+  if (!taken) return undefined;
+  const { delivery, method, now } = taken;
   delivery.status = "delivered";
-  delivery.deliveredAt = new Date();
+  delivery.deliveredAt = now;
+  if (method === "code") {
+    delivery.receipt = "confirmed";
+    delivery.receiptConfirmedBy = "code";
+    delivery.receiptAt = now;
+  } else {
+    delivery.receipt = "pending";
+  }
   await delivery.save();
-  await reliability.record(req.user.id, "delivery_completed", { deliveryId: delivery._id, postingId: delivery.postingId });
-  await tellParties(delivery, `Food from ${delivery.restaurantName} was delivered`, `${req.user.name} dropped it off at ${delivery.foodBankName}. Thank you!`);
+  if (method === "code") {
+    await handoff.setDriverCredit(delivery, "completed");
+    await tellParties(delivery, `Food from ${delivery.restaurantName} was delivered`, `${req.user.name} dropped it off at ${delivery.foodBankName}, confirmed with the drop-off code. Thank you!`);
+  } else {
+    await notify([delivery.foodBankId], {
+      type: "delivery",
+      title: `Did the food from ${delivery.restaurantName} arrive?`,
+      body: `${req.user.name} marked it delivered without your drop-off code. Please confirm you received it.`,
+      link: `/view_post/${delivery.postingId}`,
+      postingId: delivery.postingId,
+    });
+    if (delivery.donorId) {
+      await notify([delivery.donorId], {
+        type: "delivery",
+        title: `Food from ${delivery.restaurantName} was delivered`,
+        body: `${req.user.name} dropped it off at ${delivery.foodBankName}. Thank you!`,
+        link: `/view_post/${delivery.postingId}`,
+        postingId: delivery.postingId,
+      });
+    }
+  }
   return res.status(200).json(await view(delivery, req.user));
+};
+
+// POST /delivery/:id/confirm — the food bank received it.
+const confirmReceipt = async (req, res) => {
+  const delivery = await load(req, res);
+  if (!delivery) return undefined;
+  if (!handoff.verificationActions(delivery, req.user.id).canConfirm) {
+    return res.status(409).json({ msg: "There's nothing to confirm for this delivery." });
+  }
+  const now = new Date();
+  if (delivery.status === "picked_up") {
+    delivery.status = "delivered";
+    delivery.deliveredAt = now;
+  }
+  delivery.receipt = "confirmed";
+  delivery.receiptConfirmedBy = "foodbank";
+  delivery.receiptAt = now;
+  if (delivery.dispute && delivery.dispute.at && !delivery.dispute.resolution) {
+    delivery.dispute.resolution = "delivered";
+    delivery.dispute.resolvedAt = now;
+  }
+  await delivery.save();
+  await handoff.setDriverCredit(delivery, "completed");
+  await notify([delivery.driverId], {
+    type: "delivery",
+    title: `${delivery.foodBankName} confirmed your delivery`,
+    body: `The food from ${delivery.restaurantName} arrived. Thank you!`,
+    link: "/main",
+  });
+  return res.status(200).json(await view(delivery, req.user));
+};
+
+// POST /delivery/:id/report { stage: "pickup" | "dropoff", note }
+// The food bank says the food never arrived, or the restaurant says the driver
+// never collected it. Counts against the driver until an admin decides.
+const reportProblem = async (req, res) => {
+  const delivery = await load(req, res);
+  if (!delivery) return undefined;
+  const { stage } = req.body || {};
+  const note = typeof req.body.note === "string" ? req.body.note.trim().slice(0, 500) : "";
+  const allowed = handoff.verificationActions(delivery, req.user.id);
+  if (!(stage === "dropoff" ? allowed.canReportDropoff : stage === "pickup" ? allowed.canReportPickup : false)) {
+    return res.status(409).json({ msg: "You can't report a problem with this delivery." });
+  }
+  delivery.dispute = { stage, byUserId: req.user.id, note, at: new Date() };
+  delivery.receipt = "disputed";
+  await delivery.save();
+  await handoff.setDriverCredit(delivery, "disputed");
+
+  const what = stage === "dropoff" ? `the food from ${delivery.restaurantName} never arrived` : `you didn't collect the food`;
+  await notify([delivery.driverId], {
+    type: "delivery",
+    title: `${req.user.name} reported a problem with your delivery`,
+    body: `They say ${what}${note ? `: "${note}"` : "."} A Ladle admin will look into it. Reply in the delivery chat if there's been a mix-up.`,
+    link: "/main",
+  });
+  const admins = await mongoUsers.find({ isAdmin: true }, "_id");
+  await notify(admins.map((a) => a._id), {
+    type: "delivery",
+    title: `Delivery problem reported by ${req.user.name}`,
+    body: `${delivery.restaurantName} → ${delivery.foodBankName}, driver ${delivery.driverName}.`,
+    link: "/admin",
+  });
+  return res.status(200).json(await view(delivery, req.user));
+};
+
+// GET /delivery/:id/photo/:stage — for the people involved and admins.
+const getHandoffPhoto = async (req, res) => {
+  const delivery = await load(req, res);
+  if (!delivery) return undefined;
+  const isParty = [delivery.foodBankId, delivery.donorId, delivery.driverId].some((id) => id && String(id) === req.user.id);
+  if (!isParty && !req.user.isAdmin) return res.status(403).json({ msg: "Only the people on this delivery can see its photos." });
+  if (!["pickup", "dropoff"].includes(req.params.stage)) return notFound(res);
+  const photo = await mongoDeliveryPhotos.findOne({ deliveryId: delivery._id, stage: req.params.stage });
+  if (!photo) return res.status(404).json({ msg: "No photo." });
+  res.set("Content-Type", photo.contentType);
+  res.set("Cache-Control", "private, max-age=86400");
+  return res.send(photo.data);
 };
 
 // POST /delivery/:id/cancel — the food bank no longer needs a driver.
@@ -362,6 +582,10 @@ module.exports = {
   releaseDelivery,
   markCollected,
   markDelivered,
+  confirmReceipt,
+  reportProblem,
+  getHandoffPhoto,
+  view,
   cancelDelivery,
   expireDeliveries,
   cancelForPosting,
