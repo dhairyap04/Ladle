@@ -4,11 +4,11 @@
 
 ---
 
-# Repository Audit Report: MealDrop
+# Repository Audit Report: Ladle (formerly MealDrop)
 
 ## 1. Scope, Vision & Value Proposition
 
-**What it is.** MealDrop is a MERN web app, built solo by Dhairya Prajapati since February 2026, that connects **restaurants with surplus food** to **food banks** that can collect it. Restaurants post the pickup address, a pickup window and notes. Food banks browse postings in a list and on a Google Map, open a posting, and press "I can pick this up".
+**What it is.** Ladle (called MealDrop when this audit was written) is a MERN web app, built solo by Dhairya Prajapati since February 2026, that connects **restaurants with surplus food** to **food banks** that can collect it. Restaurants post the pickup address, a pickup window and notes. Food banks browse postings in a list and on a Google Map, open a posting, and press "I can pick this up".
 
 **Problem.** Food waste at the restaurant level, set against food insecurity (README cites the 30–40% US food-supply waste figure). In practice, small restaurants have no easy channel to offer one-off surplus, and food banks have no visibility into it.
 
@@ -31,7 +31,7 @@
 
 | Competitor | What It Does Well | Differentiate / Align |
 |---|---|---|
-| **Too Good To Go** (consumer surplus marketplace) | Polished mobile UX. Very low-friction listing for businesses. Strong brand around food waste. | **Differentiate:** MealDrop is B2Nonprofit and free, not discounted consumer sales. **Align:** borrow its simple listing flow (one-tap recurring listings, pickup windows as a time picker). |
+| **Too Good To Go** (consumer surplus marketplace) | Polished mobile UX. Very low-friction listing for businesses. Strong brand around food waste. | **Differentiate:** Ladle is B2Nonprofit and free, not discounted consumer sales. **Align:** borrow its simple listing flow (one-tap recurring listings, pickup windows as a time picker). |
 | **Olio** (community and business surplus sharing) | Volunteer network that collects surplus from businesses. Gives impact stats to donors. | **Align:** the volunteer-driver persona in the README roadmap is Olio's model; impact reporting is table stakes. |
 | **Food Rescue US** (volunteer-driven rescue app) | Matches donors, receiving agencies and volunteer drivers. Scheduled, recurring rescues. | **Align:** the posting → claim → pickup → delivered status flow and driver dispatch. **Differentiate:** ad-hoc same-day surplus focus. |
 | **Second Harvest FoodRescue.ca** (Canadian donor ↔ non-profit platform) | National Canadian network. Donor onboarding. Charitable-org verification. | The most direct competitor for a Canada-scoped app. **Differentiate:** hyper-local, map-first, very low onboarding friction for small independents. **Align:** verifying recipient organizations. |

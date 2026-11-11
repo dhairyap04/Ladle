@@ -1,22 +1,22 @@
-<p align="center"><img src="client/public/images/logo-mark.svg" width="96" alt="MealDrop logo"></p>
+<p align="center"><img src="client/public/images/logo-mark.svg" width="96" alt="Ladle logo"></p>
 
-# MealDrop
+# Ladle
 
-MealDrop connects restaurants that have surplus food with food banks that can collect it. Restaurants post what they have and when it can be picked up; food banks see nearby postings on a list and a map, claim one, and mark it collected.
+Ladle connects restaurants that have surplus food with food banks that can collect it. Restaurants post what they have and when it can be picked up; food banks see nearby postings on a list and a map, claim one, and mark it collected.
 
-MealDrop is designed, built and maintained by **Dhairya Prajapati**. Development started in **February 2026** and is ongoing.
+Ladle is designed, built and maintained by **Dhairya Prajapati**. Development started in **February 2026** and is ongoing. (It was called MealDrop until November 2026.)
 
-<p align="center"><img src="docs/screenshots/landing.jpg" width="720" alt="MealDrop landing page"></p>
+<p align="center"><img src="docs/screenshots/landing.jpg" width="720" alt="Ladle landing page"></p>
 
 ## Why
 
-In the United States, an estimated **30 to 40 percent** of the food supply is wasted, while millions of households don't have reliable access to enough food. Restaurants regularly end a shift with good food they can't sell, and small restaurants rarely have an easy way to offer it to someone who can use it. MealDrop aims to make donating that food take a couple of minutes.
+In the United States, an estimated **30 to 40 percent** of the food supply is wasted, while millions of households don't have reliable access to enough food. Restaurants regularly end a shift with good food they can't sell, and small restaurants rarely have an easy way to offer it to someone who can use it. Ladle aims to make donating that food take a couple of minutes.
 
 ## What it does
 
 **For restaurants**
 - Post surplus food in about a minute: food types, quantity and weight, storage (room temperature, fridge, freezer, hot), when it was prepared, allergens and a photo.
-- Set up **weekly donations** (for example, bread every weeknight at 9 PM); MealDrop posts them automatically.
+- Set up **weekly donations** (for example, bread every weeknight at 9 PM); Ladle posts them automatically.
 - Get notified when a food bank claims and picks up your food, and **message** the food bank about pickup details.
 - See your **impact**: donations, kilograms rescued and estimated meals, month by month. Download your records as CSV or print a **donation record** for each pickup.
 
