@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
-import { Alert, Box, Button, Container, FormControlLabel, InputAdornment, MenuItem, Paper, Skeleton, Snackbar, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, FormControlLabel, InputAdornment, Link, MenuItem, Paper, Skeleton, Snackbar, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
 import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
@@ -135,6 +136,64 @@ const PasswordSection = () => {
           {busy ? "Changing…" : "Change password"}
         </Button>
       </Stack>
+    </Paper>
+  );
+};
+
+// Download everything Ladle holds about you, or delete your account.
+const DataSection = () => {
+  const history = useHistory();
+  const [deleting, setDeleting] = useState(false);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const remove = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await api.post("user/delete", { password });
+      history.replace("/?deleted=1");
+    } catch (err) {
+      setError(errorMessage(err));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5, mt: 3 }}>
+      <Typography component="h2" variant="h6">Your data</Typography>
+      <Typography variant="body2" color="text.secondary">
+        See what Ladle stores and why in the <Link component={RouterLink} to="/privacy">privacy policy</Link>.
+      </Typography>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 2 }}>
+        <Button variant="outlined" href={`${import.meta.env.REACT_APP_HOST_URL}user/export`}>Download my data</Button>
+        <Button color="error" onClick={() => setDeleting(true)}>Delete my account</Button>
+      </Stack>
+
+      <Dialog open={deleting} onClose={() => !busy && setDeleting(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Delete your account?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This can&apos;t be undone. Your profile, open postings, weekly donations, ratings, notifications and messages are deleted.
+            Pickups you completed stay in the other organization&apos;s records under &quot;Former Ladle member&quot;.
+          </DialogContentText>
+          {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+          <TextField
+            fullWidth
+            type="password"
+            label="Your password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleting(false)} disabled={busy}>Keep my account</Button>
+          <Button color="error" variant="contained" onClick={remove} disabled={busy || !password}>Delete forever</Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 };
@@ -373,6 +432,7 @@ const ProfilePage = () => {
         </Paper>
         )}
         {!loading && <PasswordSection />}
+        {!loading && <DataSection />}
         <Snackbar
           open={Boolean(notice)}
           autoHideDuration={3000}

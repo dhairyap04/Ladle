@@ -42,6 +42,10 @@ In the United States, an estimated **30 to 40 percent** of the food supply is wa
 - An **installable app (PWA)** with a phone-friendly bottom navigation bar and an offline notice.
 - Postings expire automatically when their pickup window ends.
 
+**Privacy and safety**
+- A privacy policy, terms of use, and food safety and donor-protection guidance (`/privacy`, `/terms`, `/food-safety`). These are drafts; have them reviewed before launch.
+- Download all your data as JSON, or delete your account, from your profile.
+
 **For admins**
 - An admin console to review food bank verifications (with a link to the CRA charities listing), see activity across the platform, and review accounts flagged for repeated no-shows or a low pickup rate.
 
@@ -90,13 +94,15 @@ The demo uses a fake geocoder (addresses land around Edmonton) and prints emails
 | `SMTP_URL`, `EMAIL_FROM` | Emails notifications as well as showing them in the app. |
 | `ADMIN_EMAILS` | Comma-separated emails of accounts that get the admin console (applied when they sign up or log in). |
 | `REQUIRE_VERIFIED_TO_CLAIM` | `true` lets only verified food banks claim postings. Off by default. |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Push notifications for the installed app. Generate a pair with `npm run vapid` in `server/`. |
 | `TRUST_PROXY` | Behind a load balancer or proxy, the number of proxies (usually `1`), so login rate limits see real client addresses. |
+
+In `client/.env`, set `REACT_APP_CONTACT_EMAIL` to the address shown on the privacy and terms pages.
 
 Password reset emails need `SMTP_URL`. Without it, in development the reset link is printed in the server's console.
 
 ## Roadmap
 
-- Web push notifications for the installed app.
 - Route planning for drivers with more than one delivery.
 - Partner programs: food banks that bring their own volunteer drivers.
 

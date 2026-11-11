@@ -10,6 +10,7 @@ import {
   FormControlLabel,
   IconButton,
   InputAdornment,
+  Link,
   MenuItem,
   Stack,
   Switch,
@@ -222,7 +223,10 @@ const CreatePostingModal = ({ posting, schedule, onClose, onSaved }) => {
             </Box>
           </Section>
 
-          <Section title="Food safety" hint="Helps food banks decide whether they can accept it.">
+          <Section
+            title="Food safety"
+            hint={<>Helps food banks decide whether they can accept it. <Link href="/food-safety" target="_blank" rel="noopener">Food safety guidance</Link></>}
+          >
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
               <TextField select label="Storage" {...bind("storage")}>
                 {Object.entries(STORAGE).map(([key, s]) => <MenuItem key={key} value={key}>{s.label}</MenuItem>)}

@@ -181,6 +181,12 @@ function AuthForm({ history, initialLogin, initialRole }) {
                 <Button fullWidth variant="text" onClick={toggleLogin} sx={{ mt: 1 }}>
                     {isLogin ? "New here? Create an account" : "Already have an account? Log in"}
                 </Button>
+                {!isLogin && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: "center" }}>
+                        By creating an account you agree to the <Link component={RouterLink} to="/terms">terms of use</Link> and{" "}
+                        <Link component={RouterLink} to="/privacy">privacy policy</Link>.
+                    </Typography>
+                )}
             </Box>
         </Paper>
     );

@@ -11,6 +11,7 @@ import ReceiptPage from "./components/ReceiptPage/ReceiptPage";
 import AdminPage from "./components/AdminPage/AdminPage";
 import NotFound from "./components/NotFound";
 import { ForgotPasswordPage, ResetPasswordPage } from "./components/AuthPage/PasswordPages";
+import { FoodSafetyPage, PrivacyPage, TermsPage } from "./components/LegalPages/LegalPages";
 
 export default function App() {
 
@@ -29,6 +30,9 @@ export default function App() {
             <Route path="/admin" component={AdminPage} exact />
             <Route path="/forgot-password" component={ForgotPasswordPage} exact />
             <Route path="/reset-password" component={ResetPasswordPage} exact />
+            <Route path="/privacy" component={PrivacyPage} exact />
+            <Route path="/terms" component={TermsPage} exact />
+            <Route path="/food-safety" component={FoodSafetyPage} exact />
             <Route component={NotFound} />
         </Switch>
       </div>
