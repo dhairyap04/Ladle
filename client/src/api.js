@@ -2,7 +2,7 @@ import axios from "axios";
 
 // One axios instance so every request goes to the API with the auth cookies.
 const api = axios.create({
-  baseURL: process.env.REACT_APP_HOST_URL,
+  baseURL: import.meta.env.REACT_APP_HOST_URL,
   withCredentials: true,
 });
 

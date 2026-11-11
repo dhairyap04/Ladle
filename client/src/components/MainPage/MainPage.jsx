@@ -15,7 +15,7 @@ import CreatePostingModal from './Components/CreatePosting';
 import api from '../../api';
 
 // set Google Maps Geocoding API for purposes of quota management. Its optional but recommended.
-Geocode.setApiKey(process.env.REACT_APP_GCP_KEY);
+Geocode.setApiKey(import.meta.env.REACT_APP_GCP_KEY);
 Geocode.setLanguage("en");
 Geocode.setRegion("ca");
 
@@ -106,7 +106,7 @@ class MainPage extends Component {
   renderPostings() {
     const { postings, loading, loadError } = this.state;
     if (loading) return <p className="empty-state">Loading postings…</p>;
-    if (loadError) return <p className="empty-state">Couldn't load postings. Please refresh the page.</p>;
+    if (loadError) return <p className="empty-state">Couldn&apos;t load postings. Please refresh the page.</p>;
     if (postings.length === 0) {
       return <p className="empty-state">No food is waiting for pickup right now. Check back soon.</p>;
     }
@@ -129,7 +129,7 @@ class MainPage extends Component {
           <div className="flex-row space-between welcome-banner">
             <div className='flex-row start-center'>
               <Link to="/main">
-                <img src='images/logo.png' alt="MealDrop home" width="90px"></img>
+                <img src='/images/logo.png' alt="MealDrop home" width="90px"></img>
               </Link>
               <div className="welcome">
                 Welcome {!auth ? "Guest" : authObject.name}!

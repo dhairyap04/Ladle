@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useHistory } from "react-router-dom";
 import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
@@ -91,7 +91,6 @@ function SignIn({ history }) {
                 label="Organization name"
                 name="name"
                 autoComplete="organization"
-                autoFocus
                 />}
 
                 <TextField
@@ -103,7 +102,6 @@ function SignIn({ history }) {
                 name="email"
                 type="email"
                 autoComplete="email"
-                autoFocus={isLogin}
                 />
                 <TextField
                 margin="normal"
@@ -127,7 +125,7 @@ function SignIn({ history }) {
                     onChange={(e) => setFoodbank(e.target.value === true)}
                     >
                         <MenuItem value={true}>Yes, we collect food</MenuItem>
-                        <MenuItem value={false}>No, we're a restaurant donating food</MenuItem>
+                        <MenuItem value={false}>No, we&apos;re a restaurant donating food</MenuItem>
                     </Select>
                 </>}
 

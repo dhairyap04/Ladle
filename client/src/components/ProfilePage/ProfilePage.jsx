@@ -112,7 +112,7 @@ class ProfilePage extends Component {
       <div className='container flex-column center-center' >
         <div className="flex-row start-center">
           <Link to="/main">
-            <img src='images/logo.png' alt="MealDrop home" width="90px"></img>
+            <img src='/images/logo.png' alt="MealDrop home" width="90px"></img>
           </Link>
           <div className="flex-column center-center" style={{ marginLeft: "25px" }}>
             <div className='profile-header'>

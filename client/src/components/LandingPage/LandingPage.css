@@ -1,6 +1,6 @@
 #landingpage {
     padding: 0;
-    background-image: url("../../../public/images/background.svg");
+    background-image: url("/images/background.svg");
     height: 100vh;
     width: 100vw;
     display: flex;
