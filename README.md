@@ -80,6 +80,7 @@ The demo uses a fake geocoder (addresses land around Edmonton) and prints emails
 1. **Server:** copy `server/.env.example` to `server/.env` and fill in `MONGO_URI`, `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`. The server won't start without them. Then run `cd server && npm install && npm start`.
 2. **Client:** create `client/.env` with `REACT_APP_HOST_URL=http://localhost:5000/` (keep the trailing slash; on macOS, port 5000 is often taken by AirPlay Receiver, so set `PORT=5055` in `server/.env` and use that port here) and `REACT_APP_GCP_KEY=<your Google Maps key>`. Then run `cd client && npm install && npm start` (Vite dev server on http://localhost:3000). `npm run build` writes the production bundle to `client/build/`, and `npm run lint` runs ESLint.
 3. **Tests:** `cd server && npm test` runs the API test suite against an in-memory MongoDB (no database or keys needed). GitHub Actions runs the same tests, plus the client's lint and build, on every push and pull request (`.github/workflows/ci.yml`).
+4. **Browser tests:** `cd e2e && npm install && npx playwright install chromium && npm test` starts demo mode and the client on spare ports and clicks through the main flows (posting, claiming, a volunteer delivery, admin verification, password reset, phone layout) in Chromium. CI runs these too.
 
 ### Optional server settings
 
