@@ -7,6 +7,8 @@ const STATUS_COLORS = {
   picked_up: { bgcolor: "#0F4A32", color: "#FFFFFF" },
   expired: { bgcolor: "#EEECE8", color: "#4F5753" },
   cancelled: { bgcolor: "#EEECE8", color: "#4F5753" },
+  no_show: { bgcolor: "#FDE7E7", color: "#8A1C1C" },
+  unconfirmed: { bgcolor: "#EEECE8", color: "#4F5753" },
 };
 
 const StatusChip = ({ status = "open", size = "small", sx }) => (

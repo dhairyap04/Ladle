@@ -37,6 +37,10 @@ import { mapPoints } from '../../mapPoints';
 import MessagesPanel from './MessagesPanel';
 import DeliverySection from './DeliverySection';
 import { roleOf } from '../../roles';
+import ReliabilityBadge from '../Shared/ReliabilityBadge';
+import RatingCard from './RatingCard';
+
+const DISPUTE_HOURS = 48;
 import StatusChip from '../Shared/StatusChip';
 import { FOOD_TYPES, STORAGE, allergenSummary, photoUrl } from '../../food';
 import SimpleMap from '../MainPage/Components/GoogleMap';
@@ -47,6 +51,8 @@ const STATUS_TEXT = {
   picked_up: "This food has been picked up.",
   expired: "The pickup window for this posting has passed.",
   cancelled: "The restaurant has withdrawn this posting.",
+  no_show: "The restaurant reported that nobody picked this food up.",
+  unconfirmed: "Nobody confirmed whether this food was picked up.",
 };
 
 const CONFIRM_TEXT = {
@@ -61,7 +67,24 @@ const CONFIRM_TEXT = {
     body: "Confirm that your food bank has collected this food.",
     button: "Yes, we picked it up",
   },
+  release: {
+    title: "Release this pickup?",
+    body: "The food goes back on the list so another food bank can claim it, and the restaurant is told. Releasing within 2 hours of the pickup window counts against your reliability.",
+    button: "Yes, release it",
+  },
+  confirmPickup: {
+    title: "Confirm it was picked up?",
+    body: "Confirm that the food bank collected this food. It will count in both your impact totals.",
+    button: "Yes, it was picked up",
+  },
+  noShow: {
+    title: "Report that nobody came?",
+    body: "The food bank will be told and can dispute it within 48 hours if they did collect the food. Missed pickups count against their reliability.",
+    button: "Report no-show",
+  },
 };
+
+const ACTION_PATHS = { pickedUp: "picked-up", release: "release", confirmPickup: "confirm-pickup", noShow: "no-show" };
 
 const DetailRow = ({ icon: Icon, label, children }) => (
   <Stack direction="row" spacing={1.5} alignItems="flex-start">
@@ -87,6 +110,7 @@ const ViewPost = () => {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   const [editing, setEditing] = useState(false);
+  const [claimerReliability, setClaimerReliability] = useState(null);
 
   const reloadPost = useCallback(() => {
     api.get(`posting/one/${id}`)
@@ -107,6 +131,14 @@ const ViewPost = () => {
       .catch(() => setUser(null));
   }, [id]);
 
+  // The restaurant sees how dependable the food bank that claimed its food has been.
+  const claimedBy = post && post.claimedBy;
+  const ownerView = post && user && post.donorId === user.id;
+  useEffect(() => {
+    if (!claimedBy || !ownerView) return;
+    api.get(`user/${claimedBy}/reliability`).then((res) => setClaimerReliability(res.data)).catch(() => {});
+  }, [claimedBy, ownerView]);
+
   const runAction = async () => {
     const action = confirming;
     setBusy(true);
@@ -115,8 +147,8 @@ const ViewPost = () => {
       if (action === "claim") {
         await api.post(`posting/${id}/claim`);
         history.push("/confirmed");
-      } else if (action === "pickedUp") {
-        const res = await api.post(`posting/${id}/picked-up`);
+      } else if (ACTION_PATHS[action]) {
+        const res = await api.post(`posting/${id}/${ACTION_PATHS[action]}`);
         setPost(res.data);
         setBusy(false);
         setConfirming(null);
@@ -134,6 +166,9 @@ const ViewPost = () => {
   const isOpen = post && (!post.status || post.status === "open");
   const isOwner = post && user && post.donorId && post.donorId === user.id;
   const isClaimer = post && user && post.claimedBy && post.claimedBy === user.id;
+  const windowEnded = post && post.pickupEndsAt && new Date(post.pickupEndsAt) <= new Date();
+  const canDispute = post && post.status === "no_show" && post.pickupEndsAt &&
+    Date.now() - new Date(post.pickupEndsAt) < DISPUTE_HOURS * 3600e3;
 
   const renderActions = () => {
     if (isClaimer && post.status === "claimed") {
@@ -143,14 +178,39 @@ const ViewPost = () => {
           <Button variant='contained' size="large" onClick={() => setConfirming("pickedUp")}>
             Mark as picked up
           </Button>
+          {!windowEnded && (
+            <Button color="error" onClick={() => setConfirming("release")}>Can&apos;t make it? Release this pickup</Button>
+          )}
         </Stack>
       );
     }
     if (isOwner && post.status === "claimed") {
       return (
-        <Alert severity="success" icon={post.claimedByVerified ? <VerifiedRoundedIcon /> : undefined}>
-          Claimed by {post.claimedByName}{post.claimedByVerified ? " (verified food bank)" : ""}. Use the messages to arrange pickup.
-        </Alert>
+        <Stack spacing={1.5}>
+          <Alert severity="success" icon={post.claimedByVerified ? <VerifiedRoundedIcon /> : undefined}>
+            Claimed by {post.claimedByName}{post.claimedByVerified ? " (verified food bank)" : ""}. Use the messages to arrange pickup.
+          </Alert>
+          {claimerReliability && <ReliabilityBadge summary={claimerReliability} />}
+          {windowEnded && (
+            <>
+              <Typography sx={{ fontWeight: 700 }}>The pickup window has ended. Was the food picked up?</Typography>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                <Button variant="contained" onClick={() => setConfirming("confirmPickup")}>Yes, it was picked up</Button>
+                <Button variant="outlined" color="error" onClick={() => setConfirming("noShow")}>No, nobody came</Button>
+              </Stack>
+            </>
+          )}
+        </Stack>
+      );
+    }
+    if (isClaimer && canDispute) {
+      return (
+        <Stack spacing={1.5}>
+          <Alert severity="warning">
+            {post.fromRestaurantName} reported that nobody picked this up. If your food bank did collect it, confirm it now and the report will be removed.
+          </Alert>
+          <Button variant="contained" onClick={() => setConfirming("pickedUp")}>We did pick it up</Button>
+        </Stack>
       );
     }
     if (post.status === "picked_up" && (isOwner || isClaimer)) {
@@ -158,6 +218,7 @@ const ViewPost = () => {
         <Stack spacing={1.5}>
           <Alert severity="success">{STATUS_TEXT.picked_up}</Alert>
           <Button component={Link} to={`/receipt/${post._id}`} variant="outlined">View donation record</Button>
+          <RatingCard postingId={post._id} />
         </Stack>
       );
     }

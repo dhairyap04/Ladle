@@ -6,6 +6,7 @@ import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismR
 import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import { ROLE_LABELS, VEHICLES, roleOf } from "../../roles";
+import ReliabilityBadge from "../Shared/ReliabilityBadge";
 
 import AppHeader from "../Shared/AppHeader";
 import ChipPicker from "../Shared/ChipPicker";
@@ -100,6 +101,7 @@ const Section = ({ title, hint, children }) => (
 const ProfilePage = () => {
   const history = useHistory();
   const [user, setUser] = useState(undefined); // for the header
+  const [track, setTrack] = useState(null); // own reliability summary
   const [values, setValues] = useState(null);
   const [saved, setSaved] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -111,6 +113,7 @@ const ProfilePage = () => {
       .then((res) => {
         const form = toForm(res.data.user);
         setUser(res.data.user);
+        setTrack(res.data.reliability || null);
         setValues(form);
         setSaved(form);
       })
@@ -195,6 +198,16 @@ const ProfilePage = () => {
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {track && role !== "restaurant" && (
+          <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 4, mb: 3 }}>
+            <Typography sx={{ fontWeight: 800 }}>Your track record</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              What restaurants{isDriver ? " and food banks" : ""} see about you, from the last 6 months.
+              Releasing within 2 hours of a pickup or missing one lowers it.
+            </Typography>
+            <ReliabilityBadge summary={track} noun={isDriver ? "deliveries" : "pickups"} />
+          </Paper>
+        )}
         {isFoodbank && (
           <VerificationCard user={user} onChange={setUser} dirty={JSON.stringify(values) !== JSON.stringify(saved)} />
         )}

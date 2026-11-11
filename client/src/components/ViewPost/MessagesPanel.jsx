@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, Link, Paper, Stack, TextField, Typography } f
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
 import api, { errorMessage } from "../../api";
+import ReliabilityBadge from "../Shared/ReliabilityBadge";
 
 const POLL_MS = 10000;
 
@@ -122,6 +123,13 @@ const MessagesPanel = ({ postingId, user, isOwner }) => {
             />
           ))}
         </Stack>
+      )}
+
+      {isOwner && thread && thread.reliability && (
+        <Box sx={{ mt: 1.5 }}>
+          <Typography variant="caption" color="text.secondary">{thread.foodBankName}&apos;s track record</Typography>
+          <ReliabilityBadge summary={thread.reliability} />
+        </Box>
       )}
 
       <Stack spacing={1} sx={{ mt: 2, maxHeight: 320, overflowY: "auto", pr: 0.5 }} aria-live="polite">
