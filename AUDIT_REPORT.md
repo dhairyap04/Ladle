@@ -25,7 +25,7 @@
 
 ## 3. Competitive Landscape
 
-*These are from general public knowledge, not checked live; confirm current offerings before using them externally.*
+*These are from general public knowledge, not checked live. A researched, sourced comparison (November 2026) is in [docs/DESIGN.md](docs/DESIGN.md).*
 
 | Competitor | What It Does Well | Differentiate / Align |
 |---|---|---|
