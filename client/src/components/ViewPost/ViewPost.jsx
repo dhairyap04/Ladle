@@ -24,6 +24,9 @@ import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
 import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
 import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
+import LunchDiningRoundedIcon from '@mui/icons-material/LunchDiningRounded';
+import AcUnitRoundedIcon from '@mui/icons-material/AcUnitRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import Geocode from "react-geocode";
 
 // Root imports
@@ -31,6 +34,7 @@ import api, { errorMessage } from '../../api';
 import { formatPickupDate, formatPickupTime, formatPickupWindow } from '../../time';
 import AppHeader from '../Shared/AppHeader';
 import StatusChip from '../Shared/StatusChip';
+import { FOOD_TYPES, STORAGE, allergenSummary, photoUrl } from '../../food';
 import SimpleMap from '../MainPage/Components/GoogleMap';
 import PostingModal from '../MainPage/Components/CreatePosting';
 
@@ -185,6 +189,14 @@ const ViewPost = () => {
   } else {
     PostInfo = (
       <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5 }}>
+        {post.hasPhoto && (
+          <Box
+            component="img"
+            src={photoUrl(post)}
+            alt={`Food from ${post.fromRestaurantName}`}
+            sx={{ display: "block", width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 3, mb: 2.5 }}
+          />
+        )}
         <StatusChip status={status} />
         <Typography component="h1" variant="h4" sx={{ mt: 1.5, color: "primary.dark" }}>{post.fromRestaurantName}</Typography>
 
@@ -199,7 +211,19 @@ const ViewPost = () => {
             {post.pickupDate ? formatPickupWindow(post) : `Posted ${new Date(post.createdAt).toDateString()}`}
           </DetailRow>
           <DetailRow icon={PlaceRoundedIcon} label="Pickup address">{post.fromRestaurantAddress}</DetailRow>
-          <DetailRow icon={NotesRoundedIcon} label="About the food">{post.notes || "No notes added."}</DetailRow>
+          <DetailRow icon={LunchDiningRoundedIcon} label="Food">
+            {[
+              (post.foodTypes || []).map((t) => FOOD_TYPES[t]).join(", ") || "Not specified",
+              post.quantity,
+              post.estimatedWeightKg ? `about ${post.estimatedWeightKg} kg` : "",
+            ].filter(Boolean).join(" · ")}
+          </DetailRow>
+          <DetailRow icon={AcUnitRoundedIcon} label="Storage">
+            {STORAGE[post.storage || "ambient"].label}
+            {post.preparedAt ? ` · prepared ${new Date(post.preparedAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}` : ""}
+          </DetailRow>
+          <DetailRow icon={WarningAmberRoundedIcon} label="Allergens">{allergenSummary(post.allergens)}</DetailRow>
+          {post.notes && <DetailRow icon={NotesRoundedIcon} label="Notes">{post.notes}</DetailRow>}
         </Stack>
 
         <Divider sx={{ my: 3 }} />

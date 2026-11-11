@@ -1,9 +1,75 @@
 const mongoose = require("mongoose");
 const mongoFoodPostings = require("../models/Postings");
+const mongoPostingPhotos = require("../models/PostingPhotos");
+const { FOOD_TYPES, ALLERGENS, STORAGE } = require("../constants");
 
 // Postings created before the status field existed have no status and count as open.
 const OPEN_FILTER = { $or: [{ status: "open" }, { status: { $exists: false } }] };
 const MAX_DAYS_AHEAD = 60;
+const MAX_PHOTO_BYTES = 1.5 * 1024 * 1024;
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+// Keeps only known values from a list, without duplicates.
+const pickKnown = (list, allowed) =>
+  Array.isArray(list) ? [...new Set(list.filter((item) => allowed.includes(item)))] : [];
+
+// Food description and safety fields. Returns { values } or { error }.
+const parseFoodDetails = (body) => {
+  const foodTypes = pickKnown(body.foodTypes, FOOD_TYPES);
+  let allergens = pickKnown(body.allergens, [...ALLERGENS, "none"]);
+  if (allergens.includes("none") && allergens.length > 1) {
+    return { error: "Choose either specific allergens or \"None of these\", not both." };
+  }
+
+  const storage = body.storage === undefined || body.storage === "" ? "ambient" : body.storage;
+  if (!STORAGE.includes(storage)) return { error: "Please choose how the food is stored." };
+
+  let preparedAt;
+  if (body.preparedAt) {
+    preparedAt = new Date(body.preparedAt);
+    if (Number.isNaN(preparedAt.getTime())) return { error: "Please enter a valid preparation time." };
+    if (preparedAt - Date.now() > 10 * 60 * 1000) return { error: "The preparation time can't be in the future." };
+  }
+
+  let estimatedWeightKg;
+  if (body.estimatedWeightKg !== undefined && body.estimatedWeightKg !== null && body.estimatedWeightKg !== "") {
+    estimatedWeightKg = Number(body.estimatedWeightKg);
+    if (!Number.isFinite(estimatedWeightKg) || estimatedWeightKg <= 0 || estimatedWeightKg > 5000) {
+      return { error: "The estimated weight must be between 0 and 5000 kg." };
+    }
+    estimatedWeightKg = Math.round(estimatedWeightKg * 10) / 10;
+  }
+
+  const quantity = typeof body.quantity === "string" ? body.quantity.trim().slice(0, 120) : "";
+  return { values: { foodTypes, allergens, storage, preparedAt, quantity, estimatedWeightKg } };
+};
+
+// "data:image/jpeg;base64,..." -> { contentType, data } or { error }.
+const parsePhoto = (dataUrl) => {
+  const match = typeof dataUrl === "string" && /^data:(image\/[a-z]+);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+  if (!match || !PHOTO_TYPES.includes(match[1])) {
+    return { error: "Photos must be JPEG, PNG or WebP images." };
+  }
+  const data = Buffer.from(match[2], "base64");
+  if (data.length > MAX_PHOTO_BYTES) return { error: "That photo is too large. Please use one under 1.5 MB." };
+  return { contentType: match[1], data };
+};
+
+// Saves, replaces or removes a posting's photo according to the request body.
+const applyPhotoChange = async (posting, body) => {
+  if (body.photo) {
+    const { contentType, data } = parsePhoto(body.photo);
+    await mongoPostingPhotos.findOneAndUpdate(
+      { postingId: posting._id },
+      { contentType, data },
+      { upsert: true }
+    );
+    posting.hasPhoto = true;
+  } else if (body.removePhoto) {
+    await mongoPostingPhotos.deleteOne({ postingId: posting._id });
+    posting.hasPhoto = false;
+  }
+};
 
 // Accepts "HH:MM" (what <input type="time"> produces) or an HHMM number such as 1430.
 // Returns the HHMM integer, or null when the value isn't a valid time.
@@ -59,8 +125,16 @@ const parsePostingInput = (body = {}) => {
     return { error: `Pickups can be scheduled up to ${MAX_DAYS_AHEAD} days ahead.` };
   }
 
+  const food = parseFoodDetails(body);
+  if (food.error) return { error: food.error };
+  if (body.photo) {
+    const photo = parsePhoto(body.photo);
+    if (photo.error) return { error: photo.error };
+  }
+
   return {
     values: {
+      ...food.values,
       fromRestaurantAddress: fromRestaurantAddress.trim(),
       pickupDate,
       pickupTimeBegin,
@@ -87,12 +161,14 @@ const createPosting = async (req, res) => {
   const { values, error } = parsePostingInput(req.body);
   if (error) return res.status(400).json({ msg: error });
 
-  const posting = await mongoFoodPostings.create({
+  const posting = new mongoFoodPostings({
     ...values,
     donorId: req.user.id,
     fromRestaurantName: req.user.name,
     status: "open",
   });
+  await applyPhotoChange(posting, req.body);
+  await posting.save();
   return res.status(201).json(posting);
 };
 
@@ -192,8 +268,19 @@ const editPosting = async (req, res) => {
   const { values, error } = parsePostingInput(req.body);
   if (error) return res.status(400).json({ msg: error });
   posting.set(values);
+  await applyPhotoChange(posting, req.body);
   await posting.save();
   return res.status(200).json(posting);
+};
+
+const getPhoto = async (req, res) => {
+  if (!isValidId(req.params.id)) return notFound(res);
+  const photo = await mongoPostingPhotos.findOne({ postingId: req.params.id });
+  if (!photo) return res.status(404).json({ msg: "No photo." });
+  res.set("Content-Type", photo.contentType);
+  // Clients add ?v=<updatedAt>, so a cached copy is replaced when the photo changes.
+  res.set("Cache-Control", "public, max-age=86400");
+  return res.send(photo.data);
 };
 
 // The restaurant that created an open posting withdraws it.
@@ -214,6 +301,7 @@ module.exports = {
   markPickedUp,
   editPosting,
   cancelPosting,
+  getPhoto,
   parsePickupTime,
   parsePostingInput,
   expireStalePostings,

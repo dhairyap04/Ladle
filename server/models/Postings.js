@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { FOOD_TYPES, ALLERGENS, STORAGE } = require("../constants");
 
 // open -> claimed -> picked_up; open -> expired (pickup window passed) or cancelled (withdrawn by donor).
 const POSTING_STATUSES = ["open", "claimed", "picked_up", "expired", "cancelled"];
@@ -28,6 +29,14 @@ const FoodPostingsSchema = new mongoose.Schema(
     // Postings created before this field existed never expire automatically.
     pickupEndsAt: { type: Date, index: true },
     notes: { type: String, default: "" },
+    // Food safety and description.
+    foodTypes: [{ type: String, enum: FOOD_TYPES }],
+    allergens: [{ type: String, enum: [...ALLERGENS, "none"] }],
+    storage: { type: String, enum: STORAGE, default: "ambient" },
+    preparedAt: { type: Date },
+    quantity: { type: String, default: "" }, // free text, e.g. "3 trays"
+    estimatedWeightKg: { type: Number, min: 0, max: 5000 },
+    hasPhoto: { type: Boolean, default: false },
     // Postings created before the status field existed have no status and are treated as open.
     status: { type: String, enum: POSTING_STATUSES, default: "open", index: true },
     claimedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Users" },

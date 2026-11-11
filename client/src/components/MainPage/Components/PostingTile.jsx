@@ -6,29 +6,47 @@ import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import StatusChip from "../../Shared/StatusChip";
 import { formatPickupWindow } from "../../../time";
+import { FOOD_TYPES, STORAGE, photoUrl } from "../../../food";
 
 // A posting in a list. `showStatus` adds its status chip (used for "Your postings").
 const PostingTile = ({ postingData: posting, showStatus }) => {
   const status = posting.status || "open";
   const inactive = status === "expired" || status === "cancelled";
+  // e.g. "Bread & bakery, Dairy & eggs · 3 trays · ~4 kg · Refrigerated"
+  const summary = [
+    (posting.foodTypes || []).map((t) => FOOD_TYPES[t]).join(", "),
+    posting.quantity,
+    posting.estimatedWeightKg ? `~${posting.estimatedWeightKg} kg` : "",
+    posting.storage && posting.storage !== "ambient" ? STORAGE[posting.storage].short : "",
+  ].filter(Boolean).join(" · ") || posting.notes;
   return (
     <Paper variant="outlined" sx={{ borderRadius: 4, overflow: "hidden", opacity: inactive ? 0.75 : 1, "&:hover": { borderColor: "primary.main" } }}>
       <CardActionArea component={RouterLink} to={`/view_post/${posting._id}`} sx={{ p: 2 }}>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Box
-            sx={{
-              width: 52,
-              height: 52,
-              borderRadius: 3,
-              bgcolor: "#FDEEDC",
-              color: "#B85A08",
-              display: "grid",
-              placeItems: "center",
-              flexShrink: 0,
-            }}
-          >
-            <StorefrontRoundedIcon />
-          </Box>
+          {posting.hasPhoto ? (
+            <Box
+              component="img"
+              src={photoUrl(posting)}
+              alt=""
+              loading="lazy"
+              sx={{ width: 72, height: 72, borderRadius: 3, objectFit: "cover", flexShrink: 0, bgcolor: "#FDEEDC" }}
+            />
+          ) : (
+            <Box
+              sx={{
+                width: 72,
+                height: 72,
+                borderRadius: 3,
+                bgcolor: "#FDEEDC",
+                color: "#B85A08",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+              }}
+            >
+              <StorefrontRoundedIcon />
+            </Box>
+          )}
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
               <Typography component="h3" sx={{ fontWeight: 800, fontSize: "1.05rem" }}>
@@ -44,9 +62,9 @@ const PostingTile = ({ postingData: posting, showStatus }) => {
               <PlaceRoundedIcon sx={{ fontSize: 18 }} />
               <Typography variant="body2" noWrap>{posting.fromRestaurantAddress}</Typography>
             </Stack>
-            {posting.notes && (
+            {summary && (
               <Typography variant="body2" color="text.secondary" noWrap sx={{ mt: 0.5 }}>
-                {posting.notes}
+                {summary}
               </Typography>
             )}
           </Box>
