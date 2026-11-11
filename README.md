@@ -64,10 +64,20 @@ The design direction, competitor research and colour palette are documented in [
 - **Access control:** only restaurants can create, edit or withdraw postings, only food banks can claim them, each user can only change their own data, and only admins can verify food banks.
 - **PWA:** web app manifest and a service worker (production builds only) that caches the app shell but never API data.
 
+## Try the demo
+
+Run the app with demo data, without a database or any keys:
+
+1. `cd server && npm install && npm run demo`. This starts the API on http://localhost:5055 with an in-memory database, seeded with demo accounts for every role. Data resets each time it starts.
+2. In another terminal: `cd client && npm install`, create `client/.env` with `REACT_APP_HOST_URL=http://localhost:5055/`, then `npm start` and open http://localhost:3000.
+3. Log in with any demo account listed at the top of [`server/scripts/demo.js`](server/scripts/demo.js): a restaurant, a second restaurant, a food bank, a volunteer driver and an admin.
+
+The demo uses a fake geocoder (addresses land around Edmonton) and prints emails to the terminal instead of sending them.
+
 ## Running locally
 
 1. **Server:** copy `server/.env.example` to `server/.env` and fill in `MONGO_URI`, `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`. The server won't start without them. Then run `cd server && npm install && npm start`.
-2. **Client:** create `client/.env` with `REACT_APP_HOST_URL=http://localhost:5000/` (keep the trailing slash) and `REACT_APP_GCP_KEY=<your Google Maps key>`. Then run `cd client && npm install && npm start` (Vite dev server on http://localhost:3000). `npm run build` writes the production bundle to `client/build/`, and `npm run lint` runs ESLint.
+2. **Client:** create `client/.env` with `REACT_APP_HOST_URL=http://localhost:5000/` (keep the trailing slash; on macOS, port 5000 is often taken by AirPlay Receiver, so set `PORT=5055` in `server/.env` and use that port here) and `REACT_APP_GCP_KEY=<your Google Maps key>`. Then run `cd client && npm install && npm start` (Vite dev server on http://localhost:3000). `npm run build` writes the production bundle to `client/build/`, and `npm run lint` runs ESLint.
 3. **Tests:** `cd server && npm test` runs the API test suite against an in-memory MongoDB (no database or keys needed).
 
 ### Optional server settings
