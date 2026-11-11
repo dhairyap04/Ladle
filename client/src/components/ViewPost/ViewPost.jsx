@@ -33,6 +33,7 @@ import api, { errorMessage } from '../../api';
 import { formatPickupDate, formatPickupTime, formatPickupWindow } from '../../time';
 import AppHeader from '../Shared/AppHeader';
 import { mapPoints } from '../../mapPoints';
+import MessagesPanel from './MessagesPanel';
 import StatusChip from '../Shared/StatusChip';
 import { FOOD_TYPES, STORAGE, allergenSummary, photoUrl } from '../../food';
 import SimpleMap from '../MainPage/Components/GoogleMap';
@@ -237,9 +238,14 @@ const ViewPost = () => {
         </Button>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1.1fr) minmax(0, 1fr)" }, gap: { xs: 3, md: 4 }, alignItems: "start" }}>
           {PostInfo}
-          <Paper variant="outlined" sx={{ height: { xs: 260, md: 480 }, borderRadius: 5, overflow: "hidden", position: { md: "sticky" }, top: { md: 88 } }}>
-            <SimpleMap latlng={latlng} />
-          </Paper>
+          <Stack spacing={3}>
+            {post && user && (isOwner || user.isFoodbank) && (
+              <MessagesPanel postingId={post._id} user={user} isOwner={Boolean(isOwner)} />
+            )}
+            <Paper variant="outlined" sx={{ height: { xs: 260, md: 360 }, borderRadius: 5, overflow: "hidden" }}>
+              <SimpleMap latlng={latlng} />
+            </Paper>
+          </Stack>
         </Box>
       </Container>
 
