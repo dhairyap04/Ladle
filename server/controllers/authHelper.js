@@ -47,25 +47,32 @@ const decode = (token, secret) => {
   }
 };
 
-// Authenticates the request from the access token, falling back to the refresh
-// token (and issuing a new access token) when the access token has expired.
-const verify = (req, res, next) => {
+// Reads the user from the access token, falling back to the refresh token (and
+// issuing a new access token) when the access token has expired.
+const authenticate = (req, res) => {
   const { accessToken, refreshToken } = req.cookies || {};
 
   const fromAccess = accessToken && decode(accessToken, accessTokenSecret);
-  if (fromAccess) {
-    req.user = fromAccess;
-    return next();
-  }
+  if (fromAccess) return fromAccess;
 
   const fromRefresh = refreshToken && decode(refreshToken, refreshTokenSecret);
   if (fromRefresh) {
-    req.user = fromRefresh;
     res.cookie("accessToken", generateAccessToken(fromRefresh), cookieOptions(ACCESS_TOKEN_MS));
-    return next();
+    return fromRefresh;
   }
+  return null;
+};
 
+const verify = (req, res, next) => {
+  req.user = authenticate(req, res);
+  if (req.user) return next();
   return res.status(401).json({ msg: "Please log in to continue." });
+};
+
+// Like verify, but lets guests through with req.user = null.
+const optionalAuth = (req, res, next) => {
+  req.user = authenticate(req, res);
+  next();
 };
 
 const requireDonor = (req, res, next) => {
@@ -84,6 +91,7 @@ const requireFoodbank = (req, res, next) => {
 
 module.exports = {
   verify,
+  optionalAuth,
   requireDonor,
   requireFoodbank,
   setAuthCookies,

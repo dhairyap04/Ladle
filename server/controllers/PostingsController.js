@@ -1,7 +1,9 @@
 const mongoose = require("mongoose");
 const mongoFoodPostings = require("../models/Postings");
 const mongoPostingPhotos = require("../models/PostingPhotos");
+const mongoUsers = require("../models/Users");
 const { FOOD_TYPES, ALLERGENS, STORAGE } = require("../constants");
+const { fitProblems } = require("../matching");
 
 // Postings created before the status field existed have no status and count as open.
 const OPEN_FILTER = { $or: [{ status: "open" }, { status: { $exists: false } }] };
@@ -172,10 +174,18 @@ const createPosting = async (req, res) => {
   return res.status(201).json(posting);
 };
 
+// For a signed-in food bank, each posting also gets `fitProblems`: the ways it
+// doesn't suit the food bank's receiving profile (empty when it fits).
+const withFit = async (req, postings) => {
+  if (!req.user || !req.user.isFoodbank) return postings.map((p) => p.toJSON());
+  const foodBank = await mongoUsers.findById(req.user.id);
+  return postings.map((p) => ({ ...p.toJSON(), fitProblems: foodBank ? fitProblems(p, foodBank) : [] }));
+};
+
 const getPostings = async (req, res) => {
   await expireStalePostings();
   const postings = await mongoFoodPostings.find(OPEN_FILTER).sort({ createdAt: -1 });
-  return res.status(200).json(postings);
+  return res.status(200).json(await withFit(req, postings));
 };
 
 // A donor's own postings, or the pickups a food bank has claimed.

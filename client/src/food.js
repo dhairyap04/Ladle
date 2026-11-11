@@ -42,3 +42,15 @@ export function allergenSummary(allergens = []) {
 
 export const photoUrl = (posting) =>
   `${import.meta.env.REACT_APP_HOST_URL}posting/${posting._id}/photo?v=${encodeURIComponent(posting.updatedAt || "")}`;
+
+// Why a posting doesn't suit a food bank's profile (see server/matching.js).
+export const FIT_PROBLEMS = {
+  food_type: "Not a food type you accept",
+  needs_fridge: "Needs refrigeration",
+  needs_freezer: "Needs a freezer",
+  too_heavy: "More than your max pickup",
+  day: "Not on a receiving day",
+  hours: "Outside your receiving hours",
+};
+
+export const WEEKDAYS = { 0: "Sun", 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat" };

@@ -1,4 +1,4 @@
-const { verify, requireDonor, requireFoodbank } = require("../controllers/authHelper");
+const { verify, optionalAuth, requireDonor, requireFoodbank } = require("../controllers/authHelper");
 const asyncHandler = require("../controllers/asyncHandler");
 const {
   createPosting,
@@ -15,7 +15,7 @@ const {
 const postingRouter = require("express").Router();
 
 postingRouter.post("/create", verify, requireDonor, asyncHandler(createPosting));
-postingRouter.get("/all", asyncHandler(getPostings));
+postingRouter.get("/all", optionalAuth, asyncHandler(getPostings));
 postingRouter.get("/mine", verify, asyncHandler(getMyPostings));
 postingRouter.get("/one/:id", asyncHandler(getOnePost));
 postingRouter.get("/:id/photo", asyncHandler(getPhoto));

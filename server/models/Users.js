@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { FOOD_TYPES } = require("../constants");
 
 const UsersSchema = new mongoose.Schema(
   {
@@ -14,6 +15,13 @@ const UsersSchema = new mongoose.Schema(
     isFoodbank: { type: Boolean, default: false },
     // sparse: many users (all restaurants) have no charitable number.
     charitableTaxNum: { type: String, unique: true, sparse: true },
+
+    // Food bank receiving profile, used to match postings to what they can take.
+    acceptedFoodTypes: [{ type: String, enum: FOOD_TYPES }], // empty: accepts anything
+    coldStorage: [{ type: String, enum: ["refrigerated", "frozen"] }],
+    maxPickupKg: { type: Number, min: 0, max: 5000 },
+    receivingDays: [{ type: Number, min: 0, max: 6 }], // 0 = Sunday; empty: any day
+    serviceRadiusKm: { type: Number, min: 1, max: 200 },
   },
   { timestamps: true }
 );

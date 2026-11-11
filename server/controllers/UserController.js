@@ -2,11 +2,31 @@ const bcrypt = require("bcryptjs");
 
 const mongoUsers = require("../models/Users");
 const { setAuthCookies, clearAuthCookies } = require("./authHelper");
+const { FOOD_TYPES } = require("../constants");
 
 const BCRYPT_ROUNDS = 12;
 const BCRYPT_HASH = /^\$2[aby]\$\d{2}\$/;
 // Profile fields a user may change; anything else in the body is ignored.
 const EDITABLE_FIELDS = ["name", "address", "openHours", "phoneNumber", "website", "charitableTaxNum"];
+
+// Food bank receiving-profile fields, each with a parser that returns the value
+// to store, undefined to clear the field, or throws a user-facing message.
+const pickKnown = (list, allowed) =>
+  Array.isArray(list) ? [...new Set(list.filter((item) => allowed.includes(item)))] : [];
+const optionalNumber = (label, min, max) => (value) => {
+  if (value === "" || value === null || value === undefined) return undefined;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < min || n > max) throw new Error(`${label} must be between ${min} and ${max}.`);
+  return n;
+};
+const FOODBANK_FIELDS = {
+  acceptedFoodTypes: (value) => pickKnown(value, FOOD_TYPES),
+  coldStorage: (value) => pickKnown(value, ["refrigerated", "frozen"]),
+  receivingDays: (value) =>
+    Array.isArray(value) ? [...new Set(value.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort() : [],
+  maxPickupKg: optionalNumber("Maximum pickup weight", 1, 5000),
+  serviceRadiusKm: optionalNumber("Service radius", 1, 200),
+};
 
 const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
 
@@ -20,6 +40,11 @@ const publicUser = (user) => ({
   phoneNumber: user.phoneNumber || "",
   website: user.website || "",
   charitableTaxNum: user.charitableTaxNum || "",
+  acceptedFoodTypes: user.acceptedFoodTypes || [],
+  coldStorage: user.coldStorage || [],
+  receivingDays: user.receivingDays || [],
+  maxPickupKg: user.maxPickupKg ?? null,
+  serviceRadiusKm: user.serviceRadiusKm ?? null,
 });
 
 const registerUser = async (req, res) => {
@@ -91,6 +116,20 @@ const updateUser = async (req, res) => {
       $unset[field] = "";
     } else {
       $set[field] = value;
+    }
+  }
+
+  if (req.user.isFoodbank) {
+    for (const [field, parse] of Object.entries(FOODBANK_FIELDS)) {
+      if (!(field in body)) continue;
+      let value;
+      try {
+        value = parse(body[field]);
+      } catch (err) {
+        return res.status(400).json({ msg: err.message });
+      }
+      if (value === undefined) $unset[field] = "";
+      else $set[field] = value;
     }
   }
 
