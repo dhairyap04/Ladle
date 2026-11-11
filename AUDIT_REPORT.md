@@ -1,5 +1,7 @@
 **Analysis approach.** I read every tracked source file in `server/` (Express/Mongoose API) and `client/src/` (React SPA), the README, and the six UI screenshots committed at the repo root (`landing.png`, `signup.png`, `main.png`, `create.jpg`, `personalInfo.jpg`, `viewPost.png`). I ran the client through Create React App's own ESLint config and tried a production build. I did not run the API server, because it needs a MongoDB connection and I chose not to use the credentials embedded in the source. Runtime behavior is inferred from code plus screenshots; where a claim depends on something I couldn't execute, it is marked as an **assumption**. Competitor details come from general public knowledge and were not checked live.
 
+*Note (November 2026): this audit describes the app before the redesign. The 2022 screenshots it cites were removed from the repository afterwards and are still in git history; see [docs/DESIGN.md](docs/DESIGN.md) for the redesign.*
+
 ---
 
 # Repository Audit Report: MealDrop

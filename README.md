@@ -1,8 +1,12 @@
+<p align="center"><img src="client/public/images/logo-mark.svg" width="96" alt="MealDrop logo"></p>
+
 # MealDrop
 
 MealDrop connects restaurants that have surplus food with food banks that can collect it. Restaurants post what they have and when it can be picked up; food banks see nearby postings on a list and a map, claim one, and mark it collected.
 
 MealDrop is designed, built and maintained by **Dhairya Prajapati**. Development started in **February 2026** and is ongoing.
+
+<p align="center"><img src="docs/screenshots/landing.jpg" width="720" alt="MealDrop landing page"></p>
 
 ## Why
 
@@ -14,6 +18,18 @@ In the United States, an estimated **30 to 40 percent** of the food supply is wa
 - **Food banks** browse open postings in a list and on a map, claim one (only one food bank can claim each posting), and mark it picked up once they've collected it.
 - Each account has a "Your postings" or "Your pickups" list, so both sides can see where every donation stands: open, claimed, picked up, expired or withdrawn.
 - Postings expire automatically when their pickup window ends.
+
+## Screenshots
+
+| Sign up | Open pickups |
+|---|---|
+| <img src="docs/screenshots/sign-up.jpg" alt="Sign-up page with restaurant and food bank role cards"> | <img src="docs/screenshots/pickups.jpg" alt="Food bank view of open pickups and claimed pickups"> |
+
+| Posting details | |
+|---|---|
+| <img src="docs/screenshots/posting.jpg" alt="Posting details with a status tracker"> | The map shows "Map unavailable" in these screenshots because no Google Maps key was set locally. |
+
+The design direction, competitor research and colour palette are documented in [docs/DESIGN.md](docs/DESIGN.md).
 
 ## How it's built
 
