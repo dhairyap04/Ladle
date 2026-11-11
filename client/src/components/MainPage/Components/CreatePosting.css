@@ -40,12 +40,16 @@
   margin-bottom: 20px;
 }
 
-.close-image {
-  height: 25px;
+.close-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
-.close-image:hover {
-  cursor: pointer;
+.close-image {
+  height: 25px;
+  display: block;
 }
 
 .pickup-period {

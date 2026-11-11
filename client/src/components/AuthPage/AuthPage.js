@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Redirect, useHistory } from "react-router-dom";
+import { useHistory } from "react-router-dom";
+import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -12,51 +13,51 @@ import InputLabel from '@mui/material/InputLabel';
 import Container from '@mui/material/Container';
 import Select from '@mui/material/Select';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import axios from "axios"
+import api, { errorMessage } from "../../api";
 import "./AuthPage.css";
 
 const theme = createTheme();
 
-function SignIn(props) {
-
+function SignIn({ history }) {
     const [isLogin, setIsLogin] = useState(false);
     const [isFoodbank, setFoodbank] = useState(false);
+    const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
+        const email = (data.get('email') || "").trim();
+        const password = data.get('password') || "";
+        const name = (data.get('name') || "").trim();
 
-        let email = data.get('email');
-        let password = data.get('password');
-        
-        if (isLogin) {
-            axios.post(`${process.env.REACT_APP_HOST_URL}user/login`,{ email, password }, { withCredentials: true })
-                .then(res => {
-                    console.log("Redirecting!!!");
-                    props.history.push("/main");
-                })
-                .catch(e => {
-                    alert(e.response.data.msg);
-                });
-        } else {
-            let name = data.get('name');
-            axios.post(`${process.env.REACT_APP_HOST_URL}user/create`, { email, password, name, isFoodbank }, { withCredentials: true })
-                .then(res => {
-                    props.history.push("/view_profile");
-                })
-                .catch(e => {
-                    alert(e.response.data);
-                });
+        if (!email || !password || (!isLogin && !name)) {
+            setError("Please fill in all the required fields.");
+            return;
+        }
+        if (!isLogin && password.length < 8) {
+            setError("Password must be at least 8 characters.");
+            return;
         }
 
-
+        setError("");
+        setSubmitting(true);
+        try {
+            if (isLogin) {
+                await api.post("user/login", { email, password });
+                history.push("/main");
+            } else {
+                await api.post("user/create", { email, password, name, isFoodbank });
+                history.push("/view_profile");
+            }
+        } catch (e) {
+            setError(errorMessage(e));
+            setSubmitting(false);
+        }
     };
 
-    const handleChangeFoodBank = (e) => {
-        setFoodbank(e.target.value);
-    }
-
     const toggleLogin = () => {
+        setError("");
         setIsLogin(prev => !prev);
     }
 
@@ -79,17 +80,20 @@ function SignIn(props) {
             <Typography component="h1" variant="h5">
             { isLogin ? "Log In" : "Sign Up" }
             </Typography>
-            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1, width: "100%" }}>
+                {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+
                 {!isLogin && <TextField
                 margin="normal"
                 required
                 fullWidth
                 id="name"
-                label="Name"
+                label="Organization name"
                 name="name"
+                autoComplete="organization"
                 autoFocus
                 />}
-                
+
                 <TextField
                 margin="normal"
                 required
@@ -97,8 +101,9 @@ function SignIn(props) {
                 id="email"
                 label="Email Address"
                 name="email"
+                type="email"
                 autoComplete="email"
-                autoFocus
+                autoFocus={isLogin}
                 />
                 <TextField
                 margin="normal"
@@ -108,7 +113,8 @@ function SignIn(props) {
                 label="Password"
                 type="password"
                 id="password"
-                autoComplete="current-password"
+                autoComplete={isLogin ? "current-password" : "new-password"}
+                helperText={isLogin ? undefined : "At least 8 characters"}
                 />
 
                 {!isLogin && <>
@@ -117,12 +123,11 @@ function SignIn(props) {
                     labelId="foodbank-label"
                     id="isFoodbank"
                     value={isFoodbank}
-                    // label="foodbank?"
                     fullWidth
-                    onChange={handleChangeFoodBank}
+                    onChange={(e) => setFoodbank(e.target.value === true)}
                     >
-                        <MenuItem value={true}>Yes</MenuItem>
-                        <MenuItem value={false}>No</MenuItem>
+                        <MenuItem value={true}>Yes, we collect food</MenuItem>
+                        <MenuItem value={false}>No, we're a restaurant donating food</MenuItem>
                     </Select>
                 </>}
 
@@ -130,19 +135,17 @@ function SignIn(props) {
                 type="submit"
                 fullWidth
                 variant="contained"
+                disabled={submitting}
                 sx={{ mt: 3, mb: 2 }}
                 >
-                { isLogin ? "Log In" : "Sign Up" }
+                { submitting ? "Please wait…" : isLogin ? "Log In" : "Sign Up" }
                 </Button>
                 <Button
-                    color="secondary"
                     fullWidth
-                    variant="contained"
-                    sx={{ mt: 3, mb: 2 }}
-                    style={{margin: 0}}
+                    variant="text"
                     onClick={toggleLogin}
                 >
-                { isLogin ? "Or Sign-Up Instead?" : "Or log-in Instead?"}
+                { isLogin ? "New here? Sign up instead" : "Already have an account? Log in" }
                 </Button>
             </Box>
             </Box>
@@ -152,18 +155,14 @@ function SignIn(props) {
 }
 
 const AuthPage = () => {
-
     const history = useHistory();
 
-    useEffect(async () => {
-        await axios.get(`${process.env.REACT_APP_HOST_URL}user/isAuth`, { withCredentials: true })
-            .then(res => {
-                alert("You're already logged in!");
-            })
-            .catch(e => {
-                console.log(e.response);
-            });
-    }, [])
+    useEffect(() => {
+        // Already signed in: skip the form.
+        api.get("user/isAuth")
+            .then(() => history.replace("/main"))
+            .catch(() => {});
+    }, [history]);
 
     return (
         <div id="auth_page" className="flex-column center-center">
@@ -173,5 +172,3 @@ const AuthPage = () => {
 }
 
 export default AuthPage;
-
-

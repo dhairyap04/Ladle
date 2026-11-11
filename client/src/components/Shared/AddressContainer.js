@@ -1,5 +1,5 @@
 // Main Imports
-import { React, Component } from "react";
+import { Component } from "react";
 
 // Material UI imports
 import { TextField } from "@mui/material";
@@ -8,11 +8,7 @@ import { TextField } from "@mui/material";
 import "./AddressContainer.css";
 
 class AddressContainer extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-    };
-  }
+  handle = (field) => (e) => this.props.changeValue(field, e.target.value);
 
   render() {
     return (
@@ -23,15 +19,15 @@ class AddressContainer extends Component {
               <div className="address-box">Pickup Address</div>
             )}
             <div className="flex-row address-box">
-              <TextField label="Street Address" fullWidth size="small" onChange={() => { this.props.changeValue("street", event.target.value) }} />
+              <TextField label="Street Address" required fullWidth size="small" onChange={this.handle("street")} />
             </div>
             <div className="flex-row address-box space-between">
-              <TextField className="half-address" label="City" size="small" onChange={() => { this.props.changeValue("city", event.target.value) }} />
-              <TextField className="half-address" label="Postal Code" size="small" onChange={() => { this.props.changeValue("postalCode", event.target.value) }} />
+              <TextField className="half-address" label="City" required size="small" onChange={this.handle("city")} />
+              <TextField className="half-address" label="Postal Code" size="small" onChange={this.handle("postalCode")} />
             </div>
             <div className="flex-row address-box space-between">
-              <TextField className="half-address" label="Country" size="small" onChange={() => { this.props.changeValue("country", event.target.value) }} />
-              <TextField className="half-address" label="Province" size="small" onChange={() => { this.props.changeValue("province", event.target.value) }} />
+              <TextField className="half-address" label="Country" size="small" onChange={this.handle("country")} />
+              <TextField className="half-address" label="Province" size="small" onChange={this.handle("province")} />
             </div>
           </div>
         </div>

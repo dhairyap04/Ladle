@@ -22,6 +22,11 @@
   border-radius: 5px;
 }
 
+.empty-state {
+  margin: 20px 0;
+  color: #575757;
+}
+
 .welcome {
   padding-left: 20px;
   font-weight: 500;

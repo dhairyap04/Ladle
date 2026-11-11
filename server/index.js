@@ -1,29 +1,24 @@
-// URI Configuration
-require('dotenv').config();
-
-// Main Imports
-const express = require("express");
 const mongoose = require("mongoose");
-const cors = require("cors");
 
-// Root Imports
-const mainRouter = require('./routes/RouteController');
-const cookieParser = require('cookie-parser');
+const { mongoUri, port } = require("./config");
+const app = require("./app");
+const mongoUsers = require("./models/Users");
+const mongoFoodPostings = require("./models/Postings");
 
-// Initialization
-const app = express();
+// Older data may hold charitableTaxNum: null (which a sparse unique index still
+// counts), and older databases have a non-sparse unique index on that field.
+// Clear the nulls, then bring indexes in line with the schemas.
+const migrate = async () => {
+  await mongoUsers.updateMany({ charitableTaxNum: null }, { $unset: { charitableTaxNum: "" } });
+  await mongoUsers.syncIndexes();
+  await mongoFoodPostings.syncIndexes();
+};
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: true, credentials: true }));
-app.use(cookieParser())
-
-// Following line needs to be below the above bodyParser stuff
-app.use('/', mainRouter);
-
-const CONNECTION_URL = `mongodb+srv://${process.env.MONGO_USERNAME || 'shaishav'}:${process.env.MONGO_PASSWORD || 'shaishav'}@meal-drop-server.tmlr2.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
-const PORT = process.env.PORT || 5000;
-
-mongoose.connect(CONNECTION_URL, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => app.listen(PORT, () => console.log(`Server running on port: ${PORT}\nMongo DB Connection Established`)))
-  .catch((error) => console.log(`Error on server run: ${error.message}`));
+mongoose
+  .connect(mongoUri, { autoIndex: false })
+  .then(migrate)
+  .then(() => app.listen(port, () => console.log(`Server running on port ${port}; MongoDB connected`)))
+  .catch((error) => {
+    console.error(`Error on server start: ${error.message}`);
+    process.exit(1);
+  });

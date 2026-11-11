@@ -1,57 +1,21 @@
 const mongoose = require("mongoose");
-const Users = mongoose.Schema;
 
-const UsersSchema = new Users({
-  name: {
-    type: String,
-    required: true,
-    unique: false,
+const UsersSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    address: { type: String },
+    openHours: { type: String },
+    // Strings keep formatting such as leading zeros, dashes or "RR0001".
+    phoneNumber: { type: String },
+    email: { type: String, required: true, unique: true, trim: true },
+    website: { type: String },
+    // bcrypt hash; never returned from queries unless explicitly selected.
+    password: { type: String, required: true, select: false },
+    isFoodbank: { type: Boolean, default: false },
+    // sparse: many users (all restaurants) have no charitable number.
+    charitableTaxNum: { type: String, unique: true, sparse: true },
   },
-  address: {
-    type: String,
-    required: false,
-  },
-  openHours: {
-    type: String,
-    required: false,
-  },
-  phoneNumber: {
-    type: Number,
-    required: false,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  website: {
-    type: String,
-    required: false,
-    unique: false,
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  isFoodbank: {
-    type: Boolean,
-    default: false,
-  },
-  charitableTaxNum: {
-    type: Number,
-    required: false,
-    unique: true,
-  },
-  // date info
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
-})
+  { timestamps: true }
+);
 
-var mongoUsers = mongoose.model('Users', UsersSchema, 'Users');
-module.exports = mongoUsers;
+module.exports = mongoose.model("Users", UsersSchema, "Users");

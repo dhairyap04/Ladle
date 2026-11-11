@@ -17,7 +17,7 @@
     "@emotion/styled": "^11.6.0",
     "@mui/icons-material": "^5.2.5",
     "@mui/material": "^5.2.8",
-    "axios": "^0.24.0",
+    "axios": "^1.21.1",
     "dotenv": "^12.0.3",
     "google-map-react": "^2.1.10",
     "react": "^17.0.2",
@@ -37,5 +37,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "overrides": {
+    "mini-css-extract-plugin": "2.4.7"
   }
 }

@@ -10,9 +10,9 @@ const ConfirmOrder = () => {
 
             <img src="https://i.pinimg.com/originals/77/9b/9d/779b9dc3928c2dbc304bcf6702bef6df.gif" 
             alt="confirmation" 
-            class="center" />
-            <p>Delivery confirmed!</p>
-            <p>Thank you for helping save food!</p>
+            className="center" />
+            <p>Pickup reserved!</p>
+            <p>Please collect the food during the pickup window. Thank you for helping save food!</p>
 
             <Link to="/main" style={{ textDecoration: "none"}}>
                 <Button variant="contained" style={{ marginTop: "50px" }}>
