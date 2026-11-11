@@ -21,7 +21,6 @@ import PostingModal from '../MainPage/Components/CreatePosting';
 // css
 import "../../global.css";
 import "./ViewPost.css";
-import "../MainPage/MainPage.css";
 import "../ProfilePage/ProfilePage.css";
 
 const LinkTheme = { textDecoration: "None", color: "black" };
