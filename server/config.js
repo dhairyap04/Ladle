@@ -30,6 +30,9 @@ module.exports = {
     .filter(Boolean),
   // When "true", only verified food banks can claim postings.
   requireVerifiedToClaim: process.env.REQUIRE_VERIFIED_TO_CLAIM === "true",
+  // Behind a load balancer or proxy (most hosts), set to the number of proxies
+  // (usually 1) so rate limits see the real client IP.
+  trustProxy: process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY : false,
   // Comma-separated list of front-end origins allowed to call the API with cookies.
   clientOrigins: (process.env.CLIENT_ORIGINS || "http://localhost:3000")
     .split(",")

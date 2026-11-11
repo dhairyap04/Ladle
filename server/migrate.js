@@ -7,6 +7,7 @@ const mongoRecurringSchedules = require("./models/RecurringSchedules");
 const mongoDeliveries = require("./models/Deliveries");
 const mongoReliabilityEvents = require("./models/ReliabilityEvents");
 const mongoRatings = require("./models/Ratings");
+const mongoPasswordResets = require("./models/PasswordResets");
 
 // Older data may hold charitableTaxNum: null (which a sparse unique index still
 // counts), and older databases have a non-sparse unique index on that field.
@@ -25,6 +26,7 @@ const migrate = async () => {
   await mongoDeliveries.syncIndexes();
   await mongoReliabilityEvents.syncIndexes();
   await mongoRatings.syncIndexes();
+  await mongoPasswordResets.syncIndexes();
 };
 
 module.exports = { migrate };

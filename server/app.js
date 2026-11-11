@@ -2,10 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
-const { clientOrigins } = require("./config");
+const { clientOrigins, trustProxy } = require("./config");
 const mainRouter = require("./routes/RouteController");
 
 const app = express();
+app.set("trust proxy", trustProxy);
 
 // Postings can carry a resized photo as a data URL.
 app.use(express.json({ limit: "3mb" }));

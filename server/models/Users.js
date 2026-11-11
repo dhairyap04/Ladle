@@ -16,6 +16,7 @@ const UsersSchema = new mongoose.Schema(
     website: { type: String },
     // bcrypt hash; never returned from queries unless explicitly selected.
     password: { type: String, required: true, select: false },
+    sessionVersion: { type: Number, default: 0 }, // bumped on password change; see authHelper
     isFoodbank: { type: Boolean, default: false },
     role: { type: String, enum: ROLES, index: true }, // set from isFoodbank for older accounts by migrate()
     // sparse: many users (all restaurants) have no charitable number.
