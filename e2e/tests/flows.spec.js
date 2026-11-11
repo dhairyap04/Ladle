@@ -2,6 +2,13 @@
 const { test, expect } = require("@playwright/test");
 const { logIn } = require("./helpers");
 
+// A tiny PNG, standing in for a phone photo of the food.
+const PHOTO = {
+  name: "food.png",
+  mimeType: "image/png",
+  buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64"),
+};
+
 test.describe.configure({ mode: "serial" });
 
 test("guests see the landing page and open pickups", async ({ page }) => {
@@ -46,11 +53,28 @@ test("a volunteer driver accepts, collects and delivers", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Deliveries that need a driver" })).toBeVisible();
   await page.getByRole("button", { name: "Accept delivery" }).first().click();
   await page.getByRole("dialog").getByRole("button", { name: "Accept delivery" }).click();
+  // The driver doesn't know the restaurant's or food bank's code here, so
+  // they add a photo at each stop instead.
+  const dialog = page.getByRole("dialog");
   await page.getByRole("button", { name: "I've collected the food" }).first().click();
-  await page.getByRole("dialog").getByRole("button", { name: "I've collected the food" }).click();
+  await dialog.locator("input[type=file]").setInputFiles(PHOTO);
+  await expect(dialog.getByRole("img", { name: "Photo of the food" })).toBeVisible();
+  await dialog.getByRole("button", { name: "I've collected the food" }).click();
+  await expect(dialog).toBeHidden();
   await page.getByRole("button", { name: "Mark delivered" }).first().click();
-  await page.getByRole("dialog").getByRole("button", { name: "Mark delivered" }).click();
+  await dialog.locator("input[type=file]").setInputFiles(PHOTO);
+  await dialog.getByRole("button", { name: "Mark delivered" }).click();
+  await expect(dialog).toBeHidden();
   await expect(page.getByRole("heading", { name: "Recent deliveries" })).toBeVisible();
+  await expect(page.getByText("Waiting for the food bank to confirm").first()).toBeVisible();
+});
+
+test("the food bank confirms the delivery arrived", async ({ page }) => {
+  await logIn(page, "foodbank");
+  await page.getByRole("button", { name: /^Notifications/ }).click();
+  await page.getByText(/^Did the food from .* arrive\?$/).first().click();
+  await page.getByRole("button", { name: "Yes, it arrived" }).click();
+  await expect(page.getByText("Confirmed", { exact: true })).toBeVisible();
 });
 
 test("an admin verifies the food bank", async ({ page }) => {

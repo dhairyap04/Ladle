@@ -81,7 +81,7 @@ const ProofLine = ({ delivery, stage }) => {
 // The code the restaurant or food bank reads out to the driver.
 const HandoffCode = ({ delivery, viewer }) => (
   <Box sx={{ mt: 1.5, p: 2, borderRadius: 3, border: 2, borderColor: "secondary.main", bgcolor: "#FFF8EF" }}>
-    <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 1, sm: 2.5 }} alignItems={{ sm: "center" }}>
+    <Stack spacing={0.5}>
       <Box>
         <Typography variant="caption" sx={{ fontWeight: 700, color: "#A34F06", textTransform: "uppercase", letterSpacing: "0.06em" }}>
           {viewer === "restaurant" ? "Your pickup code" : "Your drop-off code"}
@@ -145,7 +145,12 @@ const Contact = ({ icon: Icon, label, person }) =>
 // A delivery job. `viewer` is "driver" or "foodbank" (actions) or "restaurant" (read-only).
 const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, title, userId }) => {
   const [confirming, setConfirming] = useState(null);
-  const [handoff, setHandoff] = useState(null); // "pickup" | "dropoff"
+  const [handoffOpen, setHandoffOpen] = useState(false);
+  const [handoffStage, setHandoffStage] = useState("pickup"); // kept while the dialog fades out
+  const startHandoff = (stage) => {
+    setHandoffStage(stage);
+    setHandoffOpen(true);
+  };
   const [reporting, setReporting] = useState(null); // "pickup" | "dropoff"
   const [reportNote, setReportNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -303,7 +308,7 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, ti
               key={a}
               variant={i === 0 && !["release", "cancel"].includes(a) ? "contained" : "outlined"}
               color={["release", "cancel"].includes(a) ? "error" : "primary"}
-              onClick={() => (a === "picked-up" ? setHandoff("pickup") : a === "delivered" ? setHandoff("dropoff") : setConfirming(a))}
+              onClick={() => (a === "picked-up" ? startHandoff("pickup") : a === "delivered" ? startHandoff("dropoff") : setConfirming(a))}
               disabled={busy || (a === "accept" && (delivery.fitProblems || []).includes("too_heavy"))}
             >
               {ACTIONS[a].label}
@@ -318,11 +323,11 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, ti
       {viewer === "driver" && (
         <HandoffDialog
           delivery={delivery}
-          stage={handoff || "pickup"}
-          open={Boolean(handoff)}
-          onClose={() => setHandoff(null)}
+          stage={handoffStage}
+          open={handoffOpen}
+          onClose={() => setHandoffOpen(false)}
           onDone={(data) => {
-            setHandoff(null);
+            setHandoffOpen(false);
             onChanged && onChanged(data);
           }}
         />
