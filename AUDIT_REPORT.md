@@ -6,7 +6,7 @@
 
 ## 1. Scope, Vision & Value Proposition
 
-**What it is.** MealDrop is a hackathon-built (README says "within 24 hours", team of 3) MERN web app that connects **restaurants with surplus food** to **food banks** that can collect it. Restaurants post the pickup address, a pickup window and notes. Food banks browse postings in a list and on a Google Map, open a posting, and press "I can pick this up".
+**What it is.** MealDrop is a MERN web app, built solo by Dhairya Prajapati since February 2026, that connects **restaurants with surplus food** to **food banks** that can collect it. Restaurants post the pickup address, a pickup window and notes. Food banks browse postings in a list and on a Google Map, open a posting, and press "I can pick this up".
 
 **Problem.** Food waste at the restaurant level, set against food insecurity (README cites the 30–40% US food-supply waste figure). In practice, small restaurants have no easy channel to offer one-off surplus, and food banks have no visibility into it.
 
