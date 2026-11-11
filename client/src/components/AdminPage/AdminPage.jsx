@@ -23,6 +23,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import AppHeader from "../Shared/AppHeader";
 import api, { errorMessage } from "../../api";
 import useAuthUser from "../../useAuthUser";
+import { ROLE_LABELS, roleOf } from "../../roles";
 
 const STATUS_CHIP = {
   unverified: { label: "Unverified", sx: { bgcolor: "#EEECE8", color: "#4F5753" } },
@@ -45,7 +46,7 @@ const UserRow = ({ user, onDecide }) => (
       <Box sx={{ minWidth: 0 }}>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap" }}>
           <Typography sx={{ fontWeight: 800 }}>{user.name}</Typography>
-          <Chip size="small" label={user.isFoodbank ? "Food bank" : "Restaurant"} variant="outlined" />
+          <Chip size="small" label={ROLE_LABELS[roleOf(user)]} variant="outlined" />
           {user.isFoodbank && <Chip size="small" {...STATUS_CHIP[user.verificationStatus || "unverified"]} />}
           {user.isAdmin && <Chip size="small" label="Admin" color="secondary" />}
         </Stack>
@@ -160,7 +161,7 @@ const AdminPage = () => {
 
         {overview && (
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(5, 1fr)" }, gap: 2, mb: 3 }}>
-            <Stat value={overview.restaurants} label="Restaurants" />
+            <Stat value={overview.restaurants} label={`Restaurants · ${overview.drivers || 0} drivers`} />
             <Stat value={overview.foodBanks} label={`Food banks (${overview.verification.verified || 0} verified)`} />
             <Stat value={pending} label="Waiting for verification" />
             <Stat value={overview.postings.open || 0} label="Open postings" />
@@ -172,6 +173,7 @@ const AdminPage = () => {
           <Tab value="pending" label={`Verification queue${pending ? ` (${pending})` : ""}`} />
           <Tab value="foodbank" label="Food banks" />
           <Tab value="restaurant" label="Restaurants" />
+          <Tab value="driver" label="Drivers" />
           <Tab value="all" label="Everyone" />
         </Tabs>
 

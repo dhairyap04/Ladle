@@ -30,6 +30,7 @@ const ImpactPage = () => {
   }, [user, history]);
 
   const isFoodbank = data && data.role === "foodbank";
+  const isDriver = data && data.role === "driver";
   const fmt = (n) => n.toLocaleString();
 
   return (
@@ -40,7 +41,9 @@ const ImpactPage = () => {
           <Box>
             <Typography component="h1" variant="h4" sx={{ color: "primary.dark" }}>Your impact</Typography>
             <Typography color="text.secondary">
-              {isFoodbank ? "Food your food bank has collected through Ladle." : "Food you've donated through Ladle that was picked up."}
+              {isDriver
+                ? "Food you've delivered to food banks through Ladle."
+                : isFoodbank ? "Food your food bank has collected through Ladle." : "Food you've donated through Ladle that was picked up."}
             </Typography>
           </Box>
           {data && data.donations > 0 && (
@@ -61,12 +64,14 @@ const ImpactPage = () => {
           <Paper variant="outlined" sx={{ p: 4, borderRadius: 4, textAlign: "center" }}>
             <Typography variant="h6">No completed donations yet</Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }}>
-              {isFoodbank
+              {isDriver
+                ? "Once you deliver food for a food bank, it's counted here."
+                : isFoodbank
                 ? "Once you claim food and mark it picked up, it's counted here."
                 : "Once a food bank picks up food you've posted, it's counted here."}
             </Typography>
             <Button component={RouterLink} to="/main" variant="contained" sx={{ mt: 2 }}>
-              {isFoodbank ? "Find food to pick up" : "Post surplus food"}
+              {isDriver ? "Find deliveries" : isFoodbank ? "Find food to pick up" : "Post surplus food"}
             </Button>
           </Paper>
         )}
@@ -74,10 +79,10 @@ const ImpactPage = () => {
         {data && data.donations > 0 && (
           <>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
-              <Stat value={fmt(data.donations)} label={isFoodbank ? "Pickups completed" : "Donations picked up"} />
+              <Stat value={fmt(data.donations)} label={isDriver ? "Deliveries completed" : isFoodbank ? "Pickups completed" : "Donations picked up"} />
               <Stat value={`${fmt(data.totalKg)} kg`} label="Food rescued" hint={data.donationsWithoutWeight ? `${data.donationsWithoutWeight} without a weight` : undefined} />
               <Stat value={fmt(data.estimatedMeals)} label="Estimated meals" hint={`About ${data.kgPerMeal} kg per meal`} />
-              <Stat value={fmt(data.partnerCount)} label={isFoodbank ? "Restaurants" : "Food banks"} hint="you've worked with" />
+              <Stat value={fmt(data.partnerCount)} label={isFoodbank ? "Restaurants" : "Food banks"} hint={isDriver ? "you've delivered to" : "you've worked with"} />
             </Box>
 
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 2fr) minmax(0, 1fr)" }, gap: 3, mt: 3 }}>
@@ -94,7 +99,7 @@ const ImpactPage = () => {
 
               <Stack spacing={3}>
                 <Paper variant="outlined" sx={{ p: 3, borderRadius: 4 }}>
-                  <Typography component="h2" variant="h6">{isFoodbank ? "Top restaurants" : "Top food banks"}</Typography>
+                  <Typography component="h2" variant="h6">{isFoodbank ? "Top restaurants" : isDriver ? "Food banks you've helped" : "Top food banks"}</Typography>
                   <Stack component="ol" spacing={1} sx={{ pl: 2.5, mt: 1.5, mb: 0 }}>
                     {data.topPartners.map((p) => (
                       <Typography component="li" key={p.name}>

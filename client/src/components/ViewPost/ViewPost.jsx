@@ -1,5 +1,5 @@
 // Main imports
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useHistory, useParams } from "react-router-dom";
 import {
   Alert,
@@ -35,6 +35,8 @@ import { formatPickupDate, formatPickupTime, formatPickupWindow } from '../../ti
 import AppHeader from '../Shared/AppHeader';
 import { mapPoints } from '../../mapPoints';
 import MessagesPanel from './MessagesPanel';
+import DeliverySection from './DeliverySection';
+import { roleOf } from '../../roles';
 import StatusChip from '../Shared/StatusChip';
 import { FOOD_TYPES, STORAGE, allergenSummary, photoUrl } from '../../food';
 import SimpleMap from '../MainPage/Components/GoogleMap';
@@ -85,6 +87,12 @@ const ViewPost = () => {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   const [editing, setEditing] = useState(false);
+
+  const reloadPost = useCallback(() => {
+    api.get(`posting/one/${id}`)
+      .then(res => setPost(res.data))
+      .catch(() => {});
+  }, [id]);
 
   useEffect(() => {
     api.get(`posting/one/${id}`)
@@ -168,7 +176,7 @@ const ViewPost = () => {
         </Stack>
       );
     }
-    if (user && user.isFoodbank) {
+    if (user && roleOf(user) === "foodbank") {
       return (
         <Button variant='contained' size="large" fullWidth onClick={() => setConfirming("claim")}>
           I can pick this up
@@ -252,7 +260,10 @@ const ViewPost = () => {
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1.1fr) minmax(0, 1fr)" }, gap: { xs: 3, md: 4 }, alignItems: "start" }}>
           {PostInfo}
           <Stack spacing={3}>
-            {post && user && (isOwner || user.isFoodbank) && (
+            {post && user && (
+              <DeliverySection post={post} user={user} isOwner={Boolean(isOwner)} isClaimer={Boolean(isClaimer)} onPostChanged={reloadPost} />
+            )}
+            {post && user && (isOwner || roleOf(user) === "foodbank") && (
               <MessagesPanel postingId={post._id} user={user} isOwner={Boolean(isOwner)} />
             )}
             <Paper variant="outlined" sx={{ height: { xs: 260, md: 360 }, borderRadius: 5, overflow: "hidden" }}>

@@ -4,6 +4,7 @@ import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import Logo from "./Logo";
 import NotificationBell from "./NotificationBell";
 import { BottomNav, InstallPrompt, OfflineBanner } from "./AppChrome";
+import { HOME_LABELS, roleOf } from "../../roles";
 import api from "../../api";
 
 // Top bar shared by every page. `user` is the signed-in user, null for a
@@ -42,7 +43,7 @@ const AppHeader = ({ user }) => {
           {user ? (
             <>
               <Button component={RouterLink} to="/main" color="inherit" sx={{ display: { xs: "none", sm: "inline-flex" } }}>
-                {user.isFoodbank ? "Pickups" : "Postings"}
+                {HOME_LABELS[roleOf(user)]}
               </Button>
               <Button component={RouterLink} to="/impact" color="inherit" sx={{ display: { xs: "none", sm: "inline-flex" } }}>
                 Impact

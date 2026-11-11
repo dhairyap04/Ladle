@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
-import { Alert, Box, Button, Container, FormControlLabel, InputAdornment, Paper, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Container, FormControlLabel, InputAdornment, MenuItem, Paper, Stack, Switch, TextField, Typography } from "@mui/material";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
 import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
+import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
+import { ROLE_LABELS, VEHICLES, roleOf } from "../../roles";
 
 import AppHeader from "../Shared/AppHeader";
 import ChipPicker from "../Shared/ChipPicker";
@@ -33,6 +35,7 @@ const toForm = (user) => ({
   serviceRadiusKm: user.serviceRadiusKm ? String(user.serviceRadiusKm) : "",
   notifyByEmail: user.notifyByEmail !== false,
   notifyNewPostings: user.notifyNewPostings !== false,
+  vehicle: user.vehicle || "",
 });
 
 const TEXT_FIELDS = ["name", "phoneNumber", "charitableTaxNum", "address", "website"];
@@ -142,11 +145,12 @@ const ProfilePage = () => {
     if (values.openTime !== saved.openTime || values.closeTime !== saved.closeTime) {
       changes.openHours = values.openTime || values.closeTime ? `${values.openTime}-${values.closeTime}` : "";
     }
-    ["notifyByEmail", ...(user.isFoodbank ? ["notifyNewPostings"] : [])].forEach((f) => {
+    ["notifyByEmail", ...(role !== "restaurant" ? ["notifyNewPostings"] : [])].forEach((f) => {
       if (values[f] !== saved[f]) changes[f] = values[f];
     });
-    if (user.isFoodbank) {
-      FOODBANK_FIELDS.forEach((f) => {
+    if (isDriver && values.vehicle !== saved.vehicle) changes.vehicle = values.vehicle;
+    if (role !== "restaurant") {
+      FOODBANK_FIELDS.filter((f) => isFoodbank || f !== "acceptedFoodTypes").forEach((f) => {
         if (JSON.stringify(values[f]) !== JSON.stringify(saved[f])) {
           changes[f] = f === "receivingDays" ? values[f].map(Number) : values[f];
         }
@@ -168,8 +172,10 @@ const ProfilePage = () => {
     }
   };
 
-  const isFoodbank = user && user.isFoodbank;
-  const RoleIcon = isFoodbank ? VolunteerActivismRoundedIcon : StorefrontRoundedIcon;
+  const role = roleOf(user);
+  const isFoodbank = role === "foodbank";
+  const isDriver = role === "driver";
+  const RoleIcon = isDriver ? LocalShippingRoundedIcon : isFoodbank ? VolunteerActivismRoundedIcon : StorefrontRoundedIcon;
   const twoCol = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 };
 
   return (
@@ -183,7 +189,7 @@ const ProfilePage = () => {
           <Box>
             <Typography component="h1" variant="h4" sx={{ color: "primary.dark" }}>Your profile</Typography>
             <Typography color="text.secondary">
-              {loading ? "Loading…" : isFoodbank ? "Food bank account" : "Restaurant account"}
+              {loading ? "Loading…" : `${ROLE_LABELS[role]} account`}
             </Typography>
           </Box>
         </Stack>
@@ -194,27 +200,29 @@ const ProfilePage = () => {
         )}
 
         <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5 }}>
-          <Section title="Organization">
+          <Section title={isDriver ? "About you" : "Organization"} hint={isDriver ? "Your name and phone number are shared with the restaurant and food bank once you accept a delivery." : undefined}>
             <Box sx={twoCol}>
               {field("name", "Name", { required: true })}
               {field("phoneNumber", "Phone number", { type: "tel", autoComplete: "tel" })}
-              {field("website", "Website", { type: "url", autoComplete: "url" })}
+              {!isDriver && field("website", "Website", { type: "url", autoComplete: "url" })}
               {isFoodbank && field("charitableTaxNum", "Charitable registration #", { placeholder: "123456789RR0001" })}
             </Box>
           </Section>
 
           <Section
-            title={isFoodbank ? "Location and receiving hours" : "Location and hours"}
-            hint={isFoodbank ? "When your team can collect or receive food." : undefined}
+            title={isDriver ? "Where and when you can drive" : isFoodbank ? "Location and receiving hours" : "Location and hours"}
+            hint={isDriver
+              ? "Your home area is only used to find deliveries near you; it isn't shown to anyone."
+              : isFoodbank ? "When your team can collect or receive food." : undefined}
           >
             <Box sx={twoCol}>
-              {field("address", "Address", { autoComplete: "street-address", sx: { gridColumn: { sm: "1 / -1" } } })}
-              {field("openTime", isFoodbank ? "From" : "Opens at", { type: "time", InputLabelProps: { shrink: true } })}
-              {field("closeTime", isFoodbank ? "Until" : "Closes at", { type: "time", InputLabelProps: { shrink: true } })}
+              {field("address", isDriver ? "Home area (street or neighbourhood)" : "Address", { autoComplete: "street-address", sx: { gridColumn: { sm: "1 / -1" } } })}
+              {field("openTime", isFoodbank || isDriver ? "From" : "Opens at", { type: "time", InputLabelProps: { shrink: true } })}
+              {field("closeTime", isFoodbank || isDriver ? "Until" : "Closes at", { type: "time", InputLabelProps: { shrink: true } })}
             </Box>
-            {isFoodbank && values && (
+            {(isFoodbank || isDriver) && values && (
               <>
-                <Typography variant="body2" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>Days you can collect (leave empty for any day)</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>{isDriver ? "Days you can drive" : "Days you can collect"} (leave empty for any day)</Typography>
                 <ChipPicker label="Receiving days" options={WEEKDAYS} value={values.receivingDays} onChange={(v) => set("receivingDays", v)} />
               </>
             )}
@@ -243,18 +251,41 @@ const ProfilePage = () => {
             </Section>
           )}
 
+          {isDriver && values && (
+            <Section title="Your vehicle" hint="Deliveries you can't carry or keep cold are marked, and you won't be alerted about them.">
+              <Box sx={twoCol}>
+                {field("vehicle", "Vehicle", { select: true, children: [<MenuItem key="" value="">Not set</MenuItem>, ...Object.entries(VEHICLES).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)] })}
+                {field("maxPickupKg", "Most you can carry", {
+                  type: "number",
+                  inputProps: { min: 1 },
+                  InputProps: { endAdornment: <InputAdornment position="end">kg</InputAdornment> },
+                })}
+                {field("serviceRadiusKm", "How far you'll drive to a pickup", {
+                  type: "number",
+                  inputProps: { min: 1, max: 200 },
+                  InputProps: { endAdornment: <InputAdornment position="end">km</InputAdornment> },
+                })}
+              </Box>
+              <FormControlLabel
+                sx={{ mt: 1 }}
+                control={<Switch checked={values.coldStorage.length > 0} onChange={(e) => set("coldStorage", e.target.checked ? ["refrigerated"] : [])} />}
+                label="I have a cooler for chilled or frozen food"
+              />
+            </Section>
+          )}
+
           {values && (
             <Section title="Alerts" hint="Alerts always appear under the bell at the top of the page.">
               <Stack>
-                {isFoodbank && (
+                {(isFoodbank || isDriver) && (
                   <FormControlLabel
                     control={<Switch checked={values.notifyNewPostings} onChange={(e) => set("notifyNewPostings", e.target.checked)} />}
-                    label="Alert us when food we can accept is posted nearby"
+                    label={isDriver ? "Alert me when a delivery I can do is needed nearby" : "Alert us when food we can accept is posted nearby"}
                   />
                 )}
                 <FormControlLabel
                   control={<Switch checked={values.notifyByEmail} onChange={(e) => set("notifyByEmail", e.target.checked)} />}
-                  label={isFoodbank ? "Also send alerts by email" : "Email me when my food is claimed or picked up, and when I get a message"}
+                  label={isFoodbank || isDriver ? "Also send alerts by email" : "Email me when my food is claimed or picked up, and when I get a message"}
                 />
               </Stack>
             </Section>

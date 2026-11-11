@@ -6,6 +6,7 @@ import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import AppHeader from "../Shared/AppHeader";
 import Logo from "../Shared/Logo";
 import useAuthUser from "../../useAuthUser";
@@ -49,6 +50,17 @@ const AUDIENCES = [
       "Browse open pickups on a list and a map",
       "Claim a pickup in one tap, with no double-booking",
       "Keep track of every pickup you've committed to",
+    ],
+  },
+  {
+    icon: LocalShippingRoundedIcon,
+    title: "For volunteer drivers",
+    role: "driver",
+    cta: "Volunteer to drive",
+    points: [
+      "Deliver for food banks that can't collect themselves",
+      "Only see jobs your vehicle can carry, near you, when you're free",
+      "Accept a delivery in one tap and track your impact",
     ],
   },
 ];
@@ -98,7 +110,7 @@ const LandingPage = () => {
             </Typography>
             {user ? (
               <Button component={RouterLink} to="/main" variant="contained" size="large" sx={{ mt: 4 }}>
-                {user.isFoodbank ? "See open pickups" : "Go to your postings"}
+                {{ foodbank: "See open pickups", driver: "See deliveries" }[user.role] || "Go to your postings"}
               </Button>
             ) : (
               <>
@@ -143,11 +155,11 @@ const LandingPage = () => {
 
       {/* Audiences */}
       <Container maxWidth="lg" component="section" aria-label="Who Ladle is for" sx={{ py: { xs: 6, md: 8 } }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 3 }}>
           {AUDIENCES.map((audience, index) => (
             <Paper key={audience.title} variant="outlined" sx={{ p: { xs: 3, md: 4 }, borderRadius: 4 }}>
               <Stack direction="row" spacing={2} alignItems="center">
-                <IconBadge icon={audience.icon} tone={index === 0 ? "leaf" : "tangerine"} />
+                <IconBadge icon={audience.icon} tone={index === 1 ? "tangerine" : "leaf"} />
                 <Typography component="h2" variant="h5">{audience.title}</Typography>
               </Stack>
               <Stack component="ul" spacing={1.25} sx={{ listStyle: "none", p: 0, my: 3 }}>
