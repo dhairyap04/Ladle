@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
-    "demo": "node scripts/demo.js"
+    "demo": "node scripts/demo.js",
+    "vapid": "node scripts/vapid.js"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +20,8 @@
     "express": "^4.17.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^6.1.6",
-    "nodemailer": "~10.2.1"
+    "nodemailer": "~10.2.1",
+    "web-push": "~3.6.7"
   },
   "devDependencies": {
     "mongodb-memory-server": "^9.5.0",

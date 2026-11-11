@@ -1,7 +1,7 @@
 // Ladle service worker: makes the app installable and lets the app shell
 // open offline. API requests (a different origin) are never cached, so data
 // is always live; offline, the app shows its usual "can't reach the server".
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL = `ladle-shell-${VERSION}`;
 const ASSETS = `ladle-assets-${VERSION}`;
 const PRECACHE = [
@@ -76,4 +76,35 @@ self.addEventListener("fetch", (event) => {
       )
     );
   }
+});
+
+// Push notifications sent by the server (see server/push.js).
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "Ladle", body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Ladle", {
+      body: data.body || "",
+      icon: "/images/icon-192.png",
+      badge: "/images/icon-192.png",
+      data: { link: data.link || "/main" },
+    })
+  );
+});
+
+// Tapping a notification focuses an open Ladle tab (or opens one) at its link.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data.link || "/main", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((tabs) => {
+      const tab = tabs.find((t) => t.url.startsWith(self.location.origin));
+      if (tab) return tab.navigate(url).then((t) => (t || tab).focus());
+      return self.clients.openWindow(url);
+    })
+  );
 });

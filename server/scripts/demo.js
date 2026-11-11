@@ -166,6 +166,13 @@ async function seed(app) {
     GOOGLE_MAPS_API_KEY: "",
     SMTP_URL: "",
   });
+  // Temporary push keys, so push notifications work in the demo (with a production
+  // build of the client, where the service worker runs).
+  if (!process.env.VAPID_PUBLIC_KEY) {
+    const keys = require("web-push").generateVAPIDKeys();
+    process.env.VAPID_PUBLIC_KEY = keys.publicKey;
+    process.env.VAPID_PRIVATE_KEY = keys.privateKey;
+  }
 
   const mongoose = require("mongoose");
   await mongoose.connect(process.env.MONGO_URI, { autoIndex: false });

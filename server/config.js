@@ -33,6 +33,10 @@ module.exports = {
   // Behind a load balancer or proxy (most hosts), set to the number of proxies
   // (usually 1) so rate limits see the real client IP.
   trustProxy: process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY : false,
+  // Web push (optional). Generate keys with `npm run vapid`.
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY || "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || "",
+  vapidSubject: process.env.VAPID_SUBJECT || "mailto:admin@example.com",
   // Comma-separated list of front-end origins allowed to call the API with cookies.
   clientOrigins: (process.env.CLIENT_ORIGINS || "http://localhost:3000")
     .split(",")
