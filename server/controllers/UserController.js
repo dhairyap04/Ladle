@@ -46,6 +46,8 @@ const publicUser = (user) => ({
   receivingDays: user.receivingDays || [],
   maxPickupKg: user.maxPickupKg ?? null,
   serviceRadiusKm: user.serviceRadiusKm ?? null,
+  notifyByEmail: user.notifyByEmail !== false,
+  notifyNewPostings: user.notifyNewPostings !== false,
   hasLocation: Boolean(user.location && user.location.coordinates && user.location.coordinates.length),
 });
 
@@ -119,6 +121,10 @@ const updateUser = async (req, res) => {
     } else {
       $set[field] = value;
     }
+  }
+
+  for (const field of ["notifyByEmail", ...(req.user.isFoodbank ? ["notifyNewPostings"] : [])]) {
+    if (typeof body[field] === "boolean") $set[field] = body[field];
   }
 
   if (req.user.isFoodbank) {

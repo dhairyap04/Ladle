@@ -1,6 +1,7 @@
 const mongoUsers = require("./models/Users");
 const mongoFoodPostings = require("./models/Postings");
 const mongoPostingPhotos = require("./models/PostingPhotos");
+const mongoNotifications = require("./models/Notifications");
 
 // Older data may hold charitableTaxNum: null (which a sparse unique index still
 // counts), and older databases have a non-sparse unique index on that field.
@@ -10,6 +11,7 @@ const migrate = async () => {
   await mongoUsers.syncIndexes();
   await mongoFoodPostings.syncIndexes();
   await mongoPostingPhotos.syncIndexes();
+  await mongoNotifications.syncIndexes();
 };
 
 module.exports = { migrate };

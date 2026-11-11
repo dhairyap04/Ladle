@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
-import { Alert, Box, Button, Container, InputAdornment, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Container, FormControlLabel, InputAdornment, Paper, Stack, Switch, TextField, Typography } from "@mui/material";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
 
@@ -30,6 +30,8 @@ const toForm = (user) => ({
   receivingDays: (user.receivingDays || []).map(String),
   maxPickupKg: user.maxPickupKg ? String(user.maxPickupKg) : "",
   serviceRadiusKm: user.serviceRadiusKm ? String(user.serviceRadiusKm) : "",
+  notifyByEmail: user.notifyByEmail !== false,
+  notifyNewPostings: user.notifyNewPostings !== false,
 });
 
 const TEXT_FIELDS = ["name", "phoneNumber", "charitableTaxNum", "address", "website"];
@@ -91,6 +93,9 @@ const ProfilePage = () => {
     if (values.openTime !== saved.openTime || values.closeTime !== saved.closeTime) {
       changes.openHours = values.openTime || values.closeTime ? `${values.openTime}-${values.closeTime}` : "";
     }
+    ["notifyByEmail", ...(user.isFoodbank ? ["notifyNewPostings"] : [])].forEach((f) => {
+      if (values[f] !== saved[f]) changes[f] = values[f];
+    });
     if (user.isFoodbank) {
       FOODBANK_FIELDS.forEach((f) => {
         if (JSON.stringify(values[f]) !== JSON.stringify(saved[f])) {
@@ -183,6 +188,23 @@ const ProfilePage = () => {
                   helperText: "Used for distance search and new-food alerts",
                 })}
               </Box>
+            </Section>
+          )}
+
+          {values && (
+            <Section title="Alerts" hint="Alerts always appear under the bell at the top of the page.">
+              <Stack>
+                {isFoodbank && (
+                  <FormControlLabel
+                    control={<Switch checked={values.notifyNewPostings} onChange={(e) => set("notifyNewPostings", e.target.checked)} />}
+                    label="Alert us when food we can accept is posted nearby"
+                  />
+                )}
+                <FormControlLabel
+                  control={<Switch checked={values.notifyByEmail} onChange={(e) => set("notifyByEmail", e.target.checked)} />}
+                  label={isFoodbank ? "Also send alerts by email" : "Email me when my food is claimed or picked up, and when I get a message"}
+                />
+              </Stack>
             </Section>
           )}
 

@@ -26,6 +26,10 @@ const UsersSchema = new mongoose.Schema(
     maxPickupKg: { type: Number, min: 0, max: 5000 },
     receivingDays: [{ type: Number, min: 0, max: 6 }], // 0 = Sunday; empty: any day
     serviceRadiusKm: { type: Number, min: 1, max: 200 },
+
+    // Notification preferences.
+    notifyByEmail: { type: Boolean, default: true },
+    notifyNewPostings: { type: Boolean, default: true }, // food banks: alert on matching new food
   },
   { timestamps: true }
 );

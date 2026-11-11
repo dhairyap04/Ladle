@@ -5,6 +5,32 @@ const mongoUsers = require("../models/Users");
 const { FOOD_TYPES, ALLERGENS, STORAGE } = require("../constants");
 const { fitProblems } = require("../matching");
 const { geocodeToPoint, distanceKm } = require("../geocode");
+const { notify } = require("../notify");
+const { formatWindow } = require("../format");
+
+const MAX_NEW_POSTING_ALERTS = 200;
+
+// Tells food banks about a new posting that suits their profile and, when both
+// have coordinates and the food bank set a service radius, is within it.
+const alertFoodBanks = async (posting) => {
+  const foodBanks = await mongoUsers.find({ isFoodbank: true, notifyNewPostings: { $ne: false } });
+  const recipients = foodBanks.filter((bank) => {
+    if (fitProblems(posting, bank).length) return false;
+    const a = posting.location && posting.location.coordinates;
+    const b = bank.location && bank.location.coordinates;
+    if (bank.serviceRadiusKm && a && a.length === 2 && b && b.length === 2) {
+      return distanceKm(a, b) <= bank.serviceRadiusKm;
+    }
+    return true;
+  });
+  await notify(recipients.slice(0, MAX_NEW_POSTING_ALERTS).map((b) => b._id), {
+    type: "new_posting",
+    title: `New food from ${posting.fromRestaurantName}`,
+    body: `Pickup ${formatWindow(posting)} at ${posting.fromRestaurantAddress}.`,
+    link: `/view_post/${posting._id}`,
+    postingId: posting._id,
+  });
+};
 
 // Postings created before the status field existed have no status and count as open.
 const OPEN_FILTER = { $or: [{ status: "open" }, { status: { $exists: false } }] };
@@ -173,6 +199,7 @@ const createPosting = async (req, res) => {
   posting.location = await geocodeToPoint(posting.fromRestaurantAddress);
   await applyPhotoChange(posting, req.body);
   await posting.save();
+  await alertFoodBanks(posting);
   return res.status(201).json(posting);
 };
 
@@ -303,6 +330,15 @@ const claimPosting = async (req, res) => {
       ? res.status(409).json({ msg: "This posting is no longer available." })
       : notFound(res);
   }
+  if (posting.donorId) {
+    await notify([posting.donorId], {
+      type: "posting_claimed",
+      title: `${req.user.name} claimed your food`,
+      body: `They'll pick it up ${formatWindow(posting)}.`,
+      link: `/view_post/${posting._id}`,
+      postingId: posting._id,
+    });
+  }
   return res.status(200).json(posting);
 };
 
@@ -320,6 +356,15 @@ const markPickedUp = async (req, res) => {
   posting.status = "picked_up";
   posting.pickedUpAt = new Date();
   await posting.save();
+  if (posting.donorId) {
+    await notify([posting.donorId], {
+      type: "posting_picked_up",
+      title: `${req.user.name} picked up your food`,
+      body: "Thank you for donating! It's now counted in your impact.",
+      link: `/view_post/${posting._id}`,
+      postingId: posting._id,
+    });
+  }
   return res.status(200).json(posting);
 };
 

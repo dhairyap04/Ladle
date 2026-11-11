@@ -2,6 +2,7 @@ import { Link as RouterLink, useHistory } from "react-router-dom";
 import { Box, Button, Container } from "@mui/material";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import Logo from "./Logo";
+import NotificationBell from "./NotificationBell";
 import api from "../../api";
 
 // Top bar shared by every page. `user` is the signed-in user, null for a
@@ -38,6 +39,7 @@ const AppHeader = ({ user }) => {
               <Button component={RouterLink} to="/main" color="inherit" sx={{ display: { xs: "none", sm: "inline-flex" } }}>
                 {user.isFoodbank ? "Pickups" : "Postings"}
               </Button>
+              <NotificationBell />
               <Button component={RouterLink} to="/view_profile" color="inherit">
                 Profile
               </Button>

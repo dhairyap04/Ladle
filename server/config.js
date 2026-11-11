@@ -20,6 +20,9 @@ module.exports = {
   refreshTokenSecret: required("JWT_REFRESH_SECRET"),
   // Optional server-side key for the Google Geocoding API (distance search).
   googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "",
+  // Optional SMTP connection for email alerts, e.g. smtps://user:pass@smtp.example.com:465.
+  smtpUrl: process.env.SMTP_URL || "",
+  emailFrom: process.env.EMAIL_FROM || "MealDrop <no-reply@mealdrop.local>",
   // Comma-separated list of front-end origins allowed to call the API with cookies.
   clientOrigins: (process.env.CLIENT_ORIGINS || "http://localhost:3000")
     .split(",")
