@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import App from "./App";
 import theme from "./theme";
+import { registerServiceWorker } from "./pwa";
 
 const rootElement = document.getElementById("root");
 ReactDOM.render(
@@ -16,3 +17,5 @@ ReactDOM.render(
   </StrictMode>,
   rootElement
 );
+
+registerServiceWorker();

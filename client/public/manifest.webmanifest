@@ -1,0 +1,21 @@
+{
+  "name": "MealDrop",
+  "short_name": "MealDrop",
+  "description": "Restaurants post surplus food; food banks claim it and pick it up.",
+  "start_url": "/main",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAF7F2",
+  "theme_color": "#1B6B4A",
+  "categories": ["food", "social", "utilities"],
+  "icons": [
+    { "src": "/images/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/images/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/images/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Open pickups", "url": "/main", "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Your impact", "url": "/impact", "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
