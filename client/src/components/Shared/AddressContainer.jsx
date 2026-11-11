@@ -1,40 +1,18 @@
-// Main Imports
-import { Component } from "react";
+import { Box, TextField } from "@mui/material";
 
-// Material UI imports
-import { TextField } from "@mui/material";
-
-// css imports
-import "./AddressContainer.css";
-
-class AddressContainer extends Component {
-  handle = (field) => (e) => this.props.changeValue(field, e.target.value);
-
-  render() {
-    return (
-      <>
-        <div className="flex-column center-center">
-          <div className="flex-column">
-            {!this.props.profile && (
-              <div className="address-box">Pickup Address</div>
-            )}
-            <div className="flex-row address-box">
-              <TextField label="Street Address" required fullWidth size="small" onChange={this.handle("street")} />
-            </div>
-            <div className="flex-row address-box space-between">
-              <TextField className="half-address" label="City" required size="small" onChange={this.handle("city")} />
-              <TextField className="half-address" label="Postal Code" size="small" onChange={this.handle("postalCode")} />
-            </div>
-            <div className="flex-row address-box space-between">
-              <TextField className="half-address" label="Country" size="small" onChange={this.handle("country")} />
-              <TextField className="half-address" label="Province" size="small" onChange={this.handle("province")} />
-            </div>
-          </div>
-        </div>
-      </>
-    )
-  }
-
-}
+// Street / city / postal code / province / country fields. Each change is
+// reported through `changeValue(field, value)`.
+const AddressContainer = ({ changeValue }) => {
+  const handle = (field) => (e) => changeValue(field, e.target.value);
+  return (
+    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
+      <TextField label="Street address" required fullWidth onChange={handle("street")} sx={{ gridColumn: { sm: "1 / -1" } }} autoComplete="street-address" />
+      <TextField label="City" required onChange={handle("city")} autoComplete="address-level2" />
+      <TextField label="Postal code" onChange={handle("postalCode")} autoComplete="postal-code" />
+      <TextField label="Province" onChange={handle("province")} autoComplete="address-level1" />
+      <TextField label="Country" onChange={handle("country")} autoComplete="country-name" />
+    </Box>
+  );
+};
 
 export default AddressContainer;
