@@ -161,18 +161,45 @@ const markPickedUp = async (req, res) => {
   return res.status(200).json(posting);
 };
 
-// The restaurant that created an open posting withdraws it.
-const cancelPosting = async (req, res) => {
-  if (!isValidId(req.params.id)) return notFound(res);
+// Loads a posting the requesting donor owns and that is still open.
+// Sends the error response itself and returns null when that isn't the case.
+const loadOwnOpenPosting = async (req, res, verb) => {
+  if (!isValidId(req.params.id)) {
+    notFound(res);
+    return null;
+  }
   await expireStalePostings();
   const posting = await mongoFoodPostings.findById(req.params.id);
-  if (!posting) return notFound(res);
+  if (!posting) {
+    notFound(res);
+    return null;
+  }
   if (!posting.donorId || String(posting.donorId) !== req.user.id) {
-    return res.status(403).json({ msg: "You can only withdraw your own postings." });
+    res.status(403).json({ msg: `You can only ${verb} your own postings.` });
+    return null;
   }
   if (posting.status && posting.status !== "open") {
-    return res.status(409).json({ msg: "Only open postings can be withdrawn." });
+    res.status(409).json({ msg: `Only open postings can be ${verb === "edit" ? "edited" : "withdrawn"}.` });
+    return null;
   }
+  return posting;
+};
+
+// The restaurant that created an open posting changes its details.
+const editPosting = async (req, res) => {
+  const posting = await loadOwnOpenPosting(req, res, "edit");
+  if (!posting) return undefined;
+  const { values, error } = parsePostingInput(req.body);
+  if (error) return res.status(400).json({ msg: error });
+  posting.set(values);
+  await posting.save();
+  return res.status(200).json(posting);
+};
+
+// The restaurant that created an open posting withdraws it.
+const cancelPosting = async (req, res) => {
+  const posting = await loadOwnOpenPosting(req, res, "withdraw");
+  if (!posting) return undefined;
   posting.status = "cancelled";
   await posting.save();
   return res.status(200).json(posting);
@@ -185,6 +212,7 @@ module.exports = {
   getOnePost,
   claimPosting,
   markPickedUp,
+  editPosting,
   cancelPosting,
   parsePickupTime,
   parsePostingInput,

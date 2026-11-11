@@ -7,6 +7,7 @@ const {
   getOnePost,
   claimPosting,
   markPickedUp,
+  editPosting,
   cancelPosting,
 } = require("../controllers/PostingsController");
 
@@ -18,6 +19,7 @@ postingRouter.get("/mine", verify, asyncHandler(getMyPostings));
 postingRouter.get("/one/:id", asyncHandler(getOnePost));
 postingRouter.post("/:id/claim", verify, requireFoodbank, asyncHandler(claimPosting));
 postingRouter.post("/:id/picked-up", verify, requireFoodbank, asyncHandler(markPickedUp));
+postingRouter.post("/:id/edit", verify, requireDonor, asyncHandler(editPosting));
 postingRouter.post("/:id/cancel", verify, requireDonor, asyncHandler(cancelPosting));
 
 module.exports = postingRouter;

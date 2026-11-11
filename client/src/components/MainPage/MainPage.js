@@ -121,7 +121,7 @@ class MainPage extends Component {
         {this.state.toggleModal && (
           <CreatePostingModal
             onClose={() => this.setState({ toggleModal: false })}
-            onCreated={this.handleCreated}
+            onSaved={this.handleCreated}
           />
         )}
         <div className='container flex-column center-center' >

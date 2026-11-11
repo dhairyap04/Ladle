@@ -16,6 +16,7 @@ import Geocode from "react-geocode";
 import api, { errorMessage } from '../../api';
 import { formatPickupDate, formatPickupTime } from '../../time';
 import SimpleMap from '../MainPage/Components/GoogleMap';
+import PostingModal from '../MainPage/Components/CreatePosting';
 
 // css
 import "../../global.css";
@@ -57,6 +58,7 @@ const ViewPost = () => {
   const [confirming, setConfirming] = useState(null); // "claim" | "cancel" | "pickedUp" | null
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     api.get(`posting/one/${id}`)
@@ -123,9 +125,14 @@ const ViewPost = () => {
     }
     if (isOwner) {
       return (
-        <Button variant='outlined' color="error" style={{ marginTop: "10px" }} onClick={() => setConfirming("cancel")}>
-          Withdraw this posting
-        </Button>
+        <>
+          <Button variant='contained' style={{ marginTop: "10px" }} onClick={() => setEditing(true)}>
+            Edit posting
+          </Button>
+          <Button variant='outlined' color="error" style={{ marginTop: "10px" }} onClick={() => setConfirming("cancel")}>
+            Withdraw this posting
+          </Button>
+        </>
       );
     }
     if (user && user.isFoodbank) {
@@ -202,6 +209,23 @@ const ViewPost = () => {
           </div>
         </div>
       </div>
+
+      {editing && post && (
+        <PostingModal
+          posting={post}
+          onClose={() => setEditing(false)}
+          onSaved={(updated) => {
+            setPost(updated);
+            setEditing(false);
+            Geocode.fromAddress(updated.fromRestaurantAddress)
+              .then((geo) => {
+                const { lat, lng } = geo.results[0].geometry.location;
+                setLatlng([{ lat, lng, name: updated.fromRestaurantName }]);
+              })
+              .catch(() => setLatlng([]));
+          }}
+        />
+      )}
 
       <Dialog open={confirming !== null} onClose={() => !busy && setConfirming(null)}>
         <DialogTitle>{confirming && CONFIRM_TEXT[confirming].title}</DialogTitle>
