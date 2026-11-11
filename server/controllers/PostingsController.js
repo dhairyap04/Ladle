@@ -9,6 +9,8 @@ const { notify } = require("../notify");
 const { formatWindow } = require("../format");
 const { generateRecurringPostings } = require("../recurring");
 
+const { requireVerifiedToClaim } = require("../config");
+
 const MAX_NEW_POSTING_ALERTS = 200;
 
 // Tells food banks about a new posting that suits their profile and, when both
@@ -320,6 +322,11 @@ const getOnePost = async (req, res) => {
 const claimPosting = async (req, res) => {
   if (!isValidId(req.params.id)) return notFound(res);
   await expireStalePostings();
+  const foodBank = await mongoUsers.findById(req.user.id, "verificationStatus");
+  const verified = Boolean(foodBank && foodBank.verificationStatus === "verified");
+  if (requireVerifiedToClaim && !verified) {
+    return res.status(403).json({ msg: "Your food bank needs to be verified before it can claim food. You can request verification on your profile." });
+  }
   const posting = await mongoFoodPostings.findOneAndUpdate(
     { _id: req.params.id, ...OPEN_FILTER },
     {
@@ -327,6 +334,7 @@ const claimPosting = async (req, res) => {
         status: "claimed",
         claimedBy: req.user.id,
         claimedByName: req.user.name,
+        claimedByVerified: verified,
         claimedAt: new Date(),
       },
     },

@@ -3,6 +3,7 @@ import { useHistory } from "react-router-dom";
 import { Alert, Box, Button, Container, FormControlLabel, InputAdornment, Paper, Stack, Switch, TextField, Typography } from "@mui/material";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
+import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 
 import AppHeader from "../Shared/AppHeader";
 import ChipPicker from "../Shared/ChipPicker";
@@ -36,6 +37,54 @@ const toForm = (user) => ({
 
 const TEXT_FIELDS = ["name", "phoneNumber", "charitableTaxNum", "address", "website"];
 const FOODBANK_FIELDS = ["acceptedFoodTypes", "coldStorage", "receivingDays", "maxPickupKg", "serviceRadiusKm"];
+
+const VERIFICATION = {
+  unverified: {
+    severity: "info",
+    title: "Get verified",
+    text: "Verified food banks show a badge to restaurants. Save your charitable registration number and address, then request verification.",
+  },
+  pending: { severity: "info", title: "Verification requested", text: "A MealDrop admin is reviewing your details. We'll let you know." },
+  verified: { severity: "success", title: "Verified food bank", text: "Restaurants see a verified badge when you claim their food." },
+  rejected: { severity: "warning", title: "Verification not approved", text: "" },
+};
+
+// Verification status and the button to request it.
+const VerificationCard = ({ user, onChange, dirty }) => {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const status = user.verificationStatus || "unverified";
+  const info = VERIFICATION[status];
+  const request = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await api.post("user/verification/request");
+      onChange(res.data.user);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Alert
+      severity={info.severity}
+      icon={status === "verified" ? <VerifiedRoundedIcon /> : undefined}
+      sx={{ mb: 3, borderRadius: 3 }}
+      action={
+        (status === "unverified" || status === "rejected") && (
+          <Button color="inherit" size="small" onClick={request} disabled={busy || dirty} title={dirty ? "Save your profile first" : undefined}>
+            {status === "rejected" ? "Request again" : "Request verification"}
+          </Button>
+        )
+      }
+    >
+      <strong>{info.title}.</strong> {status === "rejected" ? `Reason: ${user.verificationNote || "not given"}. Update your details and request again.` : info.text}
+      {error && <Box sx={{ mt: 0.5, color: "error.main" }}>{error}</Box>}
+    </Alert>
+  );
+};
 
 const Section = ({ title, hint, children }) => (
   <Box sx={{ "& + &": { mt: 4 } }}>
@@ -140,6 +189,9 @@ const ProfilePage = () => {
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {isFoodbank && (
+          <VerificationCard user={user} onChange={setUser} dirty={JSON.stringify(values) !== JSON.stringify(saved)} />
+        )}
 
         <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5 }}>
           <Section title="Organization">

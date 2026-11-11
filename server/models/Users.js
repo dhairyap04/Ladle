@@ -27,6 +27,14 @@ const UsersSchema = new mongoose.Schema(
     receivingDays: [{ type: Number, min: 0, max: 6 }], // 0 = Sunday; empty: any day
     serviceRadiusKm: { type: Number, min: 1, max: 200 },
 
+    // Admins can review food bank verifications (granted via ADMIN_EMAILS).
+    isAdmin: { type: Boolean, default: false },
+    // Food bank verification, reviewed by an admin.
+    verificationStatus: { type: String, enum: ["unverified", "pending", "verified", "rejected"], default: "unverified", index: true },
+    verificationNote: { type: String }, // admin's reason, shown to the food bank
+    verificationRequestedAt: { type: Date },
+    verifiedAt: { type: Date },
+
     // Notification preferences.
     notifyByEmail: { type: Boolean, default: true },
     notifyNewPostings: { type: Boolean, default: true }, // food banks: alert on matching new food

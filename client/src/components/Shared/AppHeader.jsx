@@ -42,6 +42,11 @@ const AppHeader = ({ user }) => {
               <Button component={RouterLink} to="/impact" color="inherit" sx={{ display: { xs: "none", sm: "inline-flex" } }}>
                 Impact
               </Button>
+              {user.isAdmin && (
+                <Button component={RouterLink} to="/admin" color="inherit" sx={{ display: { xs: "none", sm: "inline-flex" } }}>
+                  Admin
+                </Button>
+              )}
               <NotificationBell />
               <Button component={RouterLink} to="/view_profile" color="inherit">
                 Profile

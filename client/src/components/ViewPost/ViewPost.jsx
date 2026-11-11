@@ -27,6 +27,7 @@ import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
 import LunchDiningRoundedIcon from '@mui/icons-material/LunchDiningRounded';
 import AcUnitRoundedIcon from '@mui/icons-material/AcUnitRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 
 // Root imports
 import api, { errorMessage } from '../../api';
@@ -138,7 +139,11 @@ const ViewPost = () => {
       );
     }
     if (isOwner && post.status === "claimed") {
-      return <Alert severity="success">Claimed by {post.claimedByName}.</Alert>;
+      return (
+        <Alert severity="success" icon={post.claimedByVerified ? <VerifiedRoundedIcon /> : undefined}>
+          Claimed by {post.claimedByName}{post.claimedByVerified ? " (verified food bank)" : ""}. Use the messages to arrange pickup.
+        </Alert>
+      );
     }
     if (post.status === "picked_up" && (isOwner || isClaimer)) {
       return (

@@ -7,6 +7,7 @@ const {
   logoutUser_handler,
   isAuthUser_handler,
   getUserInfo_handler,
+  requestVerification,
 } = require("../controllers/UserController");
 
 const userRouter = require("express").Router();
@@ -18,5 +19,6 @@ userRouter.post("/logout", logoutUser_handler);
 userRouter.get("/isAuth", verify, isAuthUser_handler);
 userRouter.post("/update", verify, asyncHandler(updateUser));
 userRouter.get("/info", verify, asyncHandler(getUserInfo_handler));
+userRouter.post("/verification/request", verify, asyncHandler(requestVerification));
 
 module.exports = userRouter;

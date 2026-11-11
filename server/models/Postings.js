@@ -48,6 +48,7 @@ const FoodPostingsSchema = new mongoose.Schema(
     status: { type: String, enum: POSTING_STATUSES, default: "open", index: true },
     claimedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Users" },
     claimedByName: { type: String },
+    claimedByVerified: { type: Boolean }, // the food bank's verification at claim time
     claimedAt: { type: Date },
     pickedUpAt: { type: Date },
   },
