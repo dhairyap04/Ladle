@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const mongoFoodPostings = require("../models/Postings");
 const mongoUsers = require("../models/Users");
 const { formatWindow } = require("../format");
+const mongoDeliveries = require("../models/Deliveries");
 
 // Feeding America's conversion: one meal is about 1.2 lb (0.544 kg) of food.
 const KG_PER_MEAL = 0.544;
@@ -14,11 +15,28 @@ const completedFilter = (user) => ({
 
 const monthKey = (date) => date.toISOString().slice(0, 7); // "2026-11"
 
+// A driver's delivered jobs, shaped like postings for the totals below.
+const driverDeliveries = async (driverId) => {
+  const deliveries = await mongoDeliveries.find({ driverId, status: "delivered" }).lean();
+  const postings = await mongoFoodPostings.find({ _id: { $in: deliveries.map((d) => d.postingId) } }, "foodTypes").lean();
+  const typesById = Object.fromEntries(postings.map((p) => [String(p._id), p.foodTypes]));
+  return deliveries.map((d) => ({
+    pickedUpAt: d.deliveredAt,
+    updatedAt: d.updatedAt,
+    estimatedWeightKg: d.estimatedWeightKg,
+    foodTypes: typesById[String(d.postingId)] || [],
+    claimedBy: d.foodBankId,
+    claimedByName: d.foodBankName,
+  }));
+};
+
 // GET /impact — totals, the last 12 months, food types and top partners.
 const getImpact = async (req, res) => {
-  const postings = await mongoFoodPostings
-    .find(completedFilter(req.user), "pickedUpAt updatedAt estimatedWeightKg foodTypes donorId fromRestaurantName claimedBy claimedByName")
-    .lean();
+  const postings = req.user.role === "driver"
+    ? await driverDeliveries(req.user.id)
+    : await mongoFoodPostings
+      .find(completedFilter(req.user), "pickedUpAt updatedAt estimatedWeightKg foodTypes donorId fromRestaurantName claimedBy claimedByName")
+      .lean();
 
   const totalKg = postings.reduce((sum, p) => sum + (p.estimatedWeightKg || 0), 0);
   const withoutWeight = postings.filter((p) => !p.estimatedWeightKg).length;
@@ -48,7 +66,7 @@ const getImpact = async (req, res) => {
   months.forEach((m) => { m.kg = Math.round(m.kg * 10) / 10; });
 
   return res.status(200).json({
-    role: req.user.isFoodbank ? "foodbank" : "restaurant",
+    role: req.user.role,
     donations: postings.length,
     totalKg: Math.round(totalKg * 10) / 10,
     estimatedMeals: Math.round(totalKg / KG_PER_MEAL),

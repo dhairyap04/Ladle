@@ -6,6 +6,8 @@ const NOTIFICATION_TYPES = [
   "new_posting",
   "new_message",
   "verification",
+  "delivery",
+  "reliability",
 ];
 
 const NotificationsSchema = new mongoose.Schema(

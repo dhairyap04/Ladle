@@ -42,4 +42,24 @@ function fitProblems(posting, foodBank) {
   return problems;
 }
 
-module.exports = { fitProblems, parseHours };
+// Reasons a delivery doesn't suit a volunteer driver; empty means it fits.
+// `distanceKm` is from the driver's home base to the pickup, when known.
+function driverProblems(delivery, driver, distanceKm) {
+  const problems = [];
+  if (driver.maxPickupKg && delivery.estimatedWeightKg && delivery.estimatedWeightKg > driver.maxPickupKg) {
+    problems.push("too_heavy");
+  }
+  const storage = delivery.storage || "ambient";
+  if ((storage === "refrigerated" || storage === "frozen") && !(driver.coldStorage || []).length) {
+    problems.push("needs_cooler");
+  }
+  if (driver.serviceRadiusKm && distanceKm !== undefined && distanceKm > driver.serviceRadiusKm) {
+    problems.push("too_far");
+  }
+  // Same day and hours rules as food banks.
+  const when = { pickupDate: delivery.pickupDate, pickupTimeBegin: delivery.pickupTimeBegin, pickupTimeEnd: delivery.pickupTimeEnd };
+  problems.push(...fitProblems(when, { receivingDays: driver.receivingDays, openHours: driver.openHours }));
+  return problems;
+}
+
+module.exports = { fitProblems, driverProblems, parseHours };

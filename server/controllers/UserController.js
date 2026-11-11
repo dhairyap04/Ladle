@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 
 const mongoUsers = require("../models/Users");
 const { setAuthCookies, clearAuthCookies } = require("./authHelper");
-const { FOOD_TYPES } = require("../constants");
+const { FOOD_TYPES, ROLES, VEHICLES } = require("../constants");
 const { adminEmails } = require("../config");
 const { notify } = require("../notify");
 
@@ -50,6 +50,8 @@ const publicUser = (user) => ({
   name: user.name,
   email: user.email,
   isFoodbank: user.isFoodbank,
+  role: user.role || (user.isFoodbank ? "foodbank" : "restaurant"),
+  vehicle: user.vehicle || "",
   address: user.address || "",
   openHours: user.openHours || "",
   phoneNumber: user.phoneNumber || "",
@@ -69,13 +71,19 @@ const publicUser = (user) => ({
 });
 
 const registerUser = async (req, res) => {
-  const { name, email, password, isFoodbank } = req.body || {};
+  const { name, email, password } = req.body || {};
+  // Newer clients send role; older ones send isFoodbank.
+  const role = ROLES.includes(req.body && req.body.role)
+    ? req.body.role
+    : typeof (req.body || {}).isFoodbank === "boolean"
+      ? (req.body.isFoodbank ? "foodbank" : "restaurant")
+      : null;
 
   if (!isNonEmptyString(name) || !isNonEmptyString(email) || !isNonEmptyString(password)) {
     return res.status(400).json({ msg: "Name, email and password are all required." });
   }
-  if (typeof isFoodbank !== "boolean") {
-    return res.status(400).json({ msg: "Please say whether you are a food bank." });
+  if (!role) {
+    return res.status(400).json({ msg: "Please choose restaurant, food bank or volunteer driver." });
   }
   if (password.length < 8) {
     return res.status(400).json({ msg: "Password must be at least 8 characters." });
@@ -86,7 +94,8 @@ const registerUser = async (req, res) => {
       name: name.trim(),
       email: email.trim(),
       password: await bcrypt.hash(password, BCRYPT_ROUNDS),
-      isFoodbank,
+      isFoodbank: role === "foodbank",
+      role,
     });
     syncAdmin(user);
     await user.save();
@@ -144,7 +153,7 @@ const updateUser = async (req, res) => {
     }
   }
 
-  for (const field of ["notifyByEmail", ...(req.user.isFoodbank ? ["notifyNewPostings"] : [])]) {
+  for (const field of ["notifyByEmail", ...(req.user.role !== "restaurant" ? ["notifyNewPostings"] : [])]) {
     if (typeof body[field] === "boolean") $set[field] = body[field];
   }
 
@@ -165,9 +174,16 @@ const updateUser = async (req, res) => {
     }
   }
 
-  if (req.user.isFoodbank) {
+  if (req.user.role === "driver" && "vehicle" in body) {
+    if (body.vehicle === "" || body.vehicle === null) $unset.vehicle = "";
+    else if (VEHICLES.includes(body.vehicle)) $set.vehicle = body.vehicle;
+    else return res.status(400).json({ msg: "Please choose a vehicle type." });
+  }
+
+  if (req.user.role === "foodbank" || req.user.role === "driver") {
     for (const [field, parse] of Object.entries(FOODBANK_FIELDS)) {
       if (!(field in body)) continue;
+      if (field === "acceptedFoodTypes" && req.user.role !== "foodbank") continue;
       let value;
       try {
         value = parse(body[field]);

@@ -18,6 +18,7 @@ const tokenPayload = (user) => ({
   email: user.email,
   name: user.name,
   isFoodbank: Boolean(user.isFoodbank),
+  role: user.role || (user.isFoodbank ? "foodbank" : "restaurant"),
   isAdmin: Boolean(user.isAdmin),
 });
 
@@ -77,14 +78,21 @@ const optionalAuth = (req, res, next) => {
 };
 
 const requireDonor = (req, res, next) => {
-  if (req.user.isFoodbank) {
+  if (req.user.role !== "restaurant") {
     return res.status(403).json({ msg: "Only restaurant accounts can do this." });
   }
   return next();
 };
 
+const requireDriver = (req, res, next) => {
+  if (req.user.role !== "driver") {
+    return res.status(403).json({ msg: "Only volunteer driver accounts can do this." });
+  }
+  return next();
+};
+
 const requireFoodbank = (req, res, next) => {
-  if (!req.user.isFoodbank) {
+  if (req.user.role !== "foodbank") {
     return res.status(403).json({ msg: "Only food bank accounts can do this." });
   }
   return next();
@@ -107,6 +115,7 @@ module.exports = {
   optionalAuth,
   requireDonor,
   requireFoodbank,
+  requireDriver,
   setAuthCookies,
   clearAuthCookies,
 };
