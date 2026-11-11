@@ -14,6 +14,7 @@ const {
 
 const { listMessages, sendMessage } = require("../controllers/MessagesController");
 const { getReceipt } = require("../controllers/ImpactController");
+const rel = require("../controllers/ReliabilityController");
 
 const postingRouter = require("express").Router();
 
@@ -22,6 +23,11 @@ postingRouter.get("/all", optionalAuth, asyncHandler(getPostings));
 postingRouter.get("/mine", verify, asyncHandler(getMyPostings));
 postingRouter.get("/one/:id", asyncHandler(getOnePost));
 postingRouter.get("/:id/photo", asyncHandler(getPhoto));
+postingRouter.post("/:id/release", verify, requireFoodbank, asyncHandler(rel.releaseClaim));
+postingRouter.post("/:id/no-show", verify, requireDonor, asyncHandler(rel.reportNoShow));
+postingRouter.post("/:id/confirm-pickup", verify, requireDonor, asyncHandler(rel.confirmPickup));
+postingRouter.get("/:id/ratings", verify, asyncHandler(rel.listRatings));
+postingRouter.post("/:id/ratings", verify, asyncHandler(rel.rate));
 postingRouter.get("/:id/receipt", verify, asyncHandler(getReceipt));
 postingRouter.get("/:id/messages", verify, asyncHandler(listMessages));
 postingRouter.post("/:id/messages", verify, asyncHandler(sendMessage));

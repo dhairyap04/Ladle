@@ -10,6 +10,8 @@ const {
   requestVerification,
 } = require("../controllers/UserController");
 
+const { getReliability } = require("../controllers/ReliabilityController");
+
 const userRouter = require("express").Router();
 
 userRouter.post("/create", asyncHandler(registerUser));
@@ -19,6 +21,7 @@ userRouter.post("/logout", logoutUser_handler);
 userRouter.get("/isAuth", verify, isAuthUser_handler);
 userRouter.post("/update", verify, asyncHandler(updateUser));
 userRouter.get("/info", verify, asyncHandler(getUserInfo_handler));
+userRouter.get("/:id/reliability", verify, asyncHandler(getReliability));
 userRouter.post("/verification/request", verify, asyncHandler(requestVerification));
 
 module.exports = userRouter;

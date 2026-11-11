@@ -3,6 +3,7 @@ const mongoMessages = require("../models/Messages");
 const mongoFoodPostings = require("../models/Postings");
 const mongoUsers = require("../models/Users");
 const { notify } = require("../notify");
+const reliability = require("../reliability");
 
 const MAX_LENGTH = 1000;
 const notFound = (res) => res.status(404).json({ msg: "Posting not found." });
@@ -61,9 +62,12 @@ const listMessages = async (req, res) => {
   }
   const names = await mongoUsers.find({ _id: { $in: [...threads.keys()] } }, "name");
   const nameById = Object.fromEntries(names.map((u) => [String(u._id), u.name]));
+  // The restaurant sees how dependable each food bank asking has been.
+  const summaries = isDonor ? await reliability.summaries([...threads.keys()]) : {};
   const list = [...threads.values()].map((t) => ({
     ...t,
     foodBankName: nameById[t.foodBankId] || "Food bank",
+    reliability: summaries[t.foodBankId],
     isClaimer: Boolean(posting.claimedBy) && String(posting.claimedBy) === t.foodBankId,
   }));
   // Claimer first, then the most recently active thread.

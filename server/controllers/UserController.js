@@ -256,7 +256,8 @@ const requestVerification = async (req, res) => {
 const getUserInfo_handler = async (req, res) => {
   const user = await mongoUsers.findById(req.user.id);
   if (!user) return res.status(404).json({ msg: "Account not found." });
-  return res.status(200).json({ user: publicUser(user) });
+  const { summary } = require("../reliability");
+  return res.status(200).json({ user: publicUser(user), reliability: await summary(user._id) });
 };
 
 const logoutUser_handler = (req, res) => {
