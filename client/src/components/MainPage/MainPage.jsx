@@ -9,6 +9,7 @@ import PostingTile from "./Components/PostingTile";
 import SimpleMap from "./Components/GoogleMap";
 import CreatePostingModal from "./Components/CreatePosting";
 import FilterBar, { EMPTY_FILTERS, filterParams } from "./Components/FilterBar";
+import ScheduleList from "./Components/ScheduleList";
 import { mapPoints } from "../../mapPoints";
 import api from "../../api";
 import useAuthUser from "../../useAuthUser";
@@ -45,6 +46,8 @@ const MainPage = () => {
   const [myPostings, setMyPostings] = useState([]);
   const [latlng, setLatlng] = useState([]);
   const [creating, setCreating] = useState(false);
+  const [schedules, setSchedules] = useState([]);
+  const [editingSchedule, setEditingSchedule] = useState(null);
 
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [device, setDevice] = useState(null); // { lat, lng } from the browser
@@ -109,12 +112,24 @@ const MainPage = () => {
     const timer = setTimeout(loadPostings, filters.q ? 300 : 0);
     return () => clearTimeout(timer);
   }, [loadPostings, filters.q]);
+  const loadSchedules = useCallback(async () => {
+    try {
+      const res = await api.get("schedule/mine");
+      setSchedules(res.data);
+    } catch (err) {
+      console.error("Schedule retrieval failed", err);
+    }
+  }, []);
+
   useEffect(() => { if (user) loadMine(); }, [user, loadMine]);
+  useEffect(() => { if (user && !user.isFoodbank) loadSchedules(); }, [user, loadSchedules]);
 
   const handleCreated = () => {
     setCreating(false);
+    setEditingSchedule(null);
     loadPostings();
     loadMine();
+    loadSchedules();
   };
 
   const isRestaurant = user && !user.isFoodbank;
@@ -174,6 +189,9 @@ const MainPage = () => {
     <>
       <AppHeader user={user} />
       {creating && <CreatePostingModal onClose={() => setCreating(false)} onSaved={handleCreated} />}
+      {editingSchedule && (
+        <CreatePostingModal schedule={editingSchedule} onClose={() => setEditingSchedule(null)} onSaved={handleCreated} />
+      )}
 
       <Container maxWidth="lg" component="main" sx={{ py: { xs: 3, md: 5 } }}>
         {/* Page heading */}
@@ -222,7 +240,13 @@ const MainPage = () => {
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) minmax(0, 1fr)" }, gap: { xs: 3, md: 4 }, alignItems: "start" }}>
           <Box>
-            {isRestaurant ? <>{mineList}{openList}</> : <>{openList}{mineList}</>}
+            {isRestaurant ? (
+              <>
+                <ScheduleList schedules={schedules} onEdit={setEditingSchedule} onChanged={() => { loadSchedules(); loadMine(); loadPostings(); }} />
+                {mineList}
+                {openList}
+              </>
+            ) : <>{openList}{mineList}</>}
           </Box>
           <Paper
             variant="outlined"

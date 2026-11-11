@@ -42,6 +42,8 @@ const FoodPostingsSchema = new mongoose.Schema(
     quantity: { type: String, default: "" }, // free text, e.g. "3 trays"
     estimatedWeightKg: { type: Number, min: 0, max: 5000 },
     hasPhoto: { type: Boolean, default: false },
+    // Set on postings generated from a recurring schedule.
+    scheduleId: { type: mongoose.Schema.Types.ObjectId, ref: "RecurringSchedules" },
     // Postings created before the status field existed have no status and are treated as open.
     status: { type: String, enum: POSTING_STATUSES, default: "open", index: true },
     claimedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Users" },
@@ -52,6 +54,11 @@ const FoodPostingsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// One generated posting per schedule per day.
+FoodPostingsSchema.index(
+  { scheduleId: 1, pickupDate: 1 },
+  { unique: true, partialFilterExpression: { scheduleId: { $exists: true } } }
+);
 // 2dsphere indexes skip documents without a location.
 FoodPostingsSchema.index({ location: "2dsphere" });
 

@@ -7,6 +7,7 @@ const { fitProblems } = require("../matching");
 const { geocodeToPoint, distanceKm } = require("../geocode");
 const { notify } = require("../notify");
 const { formatWindow } = require("../format");
+const { generateRecurringPostings } = require("../recurring");
 
 const MAX_NEW_POSTING_ALERTS = 200;
 
@@ -184,6 +185,13 @@ const expireStalePostings = () =>
     { $set: { status: "expired" } }
   );
 
+// Brings postings up to date before they're listed: creates today's and
+// tomorrow's postings from recurring schedules, then expires stale ones.
+const refreshPostings = async () => {
+  await generateRecurringPostings({ onCreated: (posting) => alertFoodBanks(posting) });
+  await expireStalePostings();
+};
+
 const notFound = (res) => res.status(404).json({ msg: "Posting not found." });
 
 const createPosting = async (req, res) => {
@@ -259,7 +267,7 @@ const searchOrigin = (query, profile) => {
 // Each posting gets distanceKm when both ends have coordinates, and, for a
 // signed-in food bank, fitProblems (empty when it suits their profile).
 const getPostings = async (req, res) => {
-  await expireStalePostings();
+  await refreshPostings();
   const query = req.query || {};
   const profile = req.user ? await mongoUsers.findById(req.user.id) : null;
   const origin = searchOrigin(query, profile);
@@ -293,7 +301,7 @@ const getPostings = async (req, res) => {
 
 // A donor's own postings, or the pickups a food bank has claimed.
 const getMyPostings = async (req, res) => {
-  await expireStalePostings();
+  await refreshPostings();
   const filter = req.user.isFoodbank ? { claimedBy: req.user.id } : { donorId: req.user.id };
   const postings = await mongoFoodPostings.find(filter).sort({ createdAt: -1 }).limit(50);
   return res.status(200).json(postings);
@@ -437,6 +445,8 @@ module.exports = {
   editPosting,
   cancelPosting,
   getPhoto,
+  refreshPostings,
+  parseFoodDetails,
   parsePickupTime,
   parsePostingInput,
   expireStalePostings,

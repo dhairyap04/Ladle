@@ -7,10 +7,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   IconButton,
   InputAdornment,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography,
   useMediaQuery,
@@ -23,7 +25,7 @@ import AddressContainer from "../../Shared/AddressContainer";
 import ChipPicker from "../../Shared/ChipPicker";
 import api, { errorMessage } from "../../../api";
 import { localDateTimeToIso, todayDateInput, toTimeInput } from "../../../time";
-import { ALLERGENS, FOOD_TYPES, STORAGE, photoUrl } from "../../../food";
+import { ALLERGENS, FOOD_TYPES, STORAGE, WEEKDAYS, photoUrl } from "../../../food";
 import { resizePhoto } from "../../../photo";
 
 const ALLERGEN_OPTIONS = { ...ALLERGENS, none: "None of these" };
@@ -44,9 +46,12 @@ const Section = ({ title, hint, children }) => (
   </Box>
 );
 
-// Creates a posting, or edits one when given a `posting` prop.
-const CreatePostingModal = ({ posting, onClose, onSaved }) => {
-  const isEdit = Boolean(posting);
+// Creates a posting or a weekly schedule. Edits a posting when given `posting`,
+// or a schedule when given `schedule`.
+const CreatePostingModal = ({ posting, schedule, onClose, onSaved }) => {
+  const isEdit = Boolean(posting || schedule);
+  const source = posting || schedule;
+  const [repeat, setRepeat] = useState(Boolean(schedule));
   const fullScreen = useMediaQuery(useTheme().breakpoints.down("sm"));
 
   const [form, setForm] = useState({
@@ -56,17 +61,19 @@ const CreatePostingModal = ({ posting, onClose, onSaved }) => {
     province: "",
     postalCode: "",
     country: "",
-    address: posting ? posting.fromRestaurantAddress : "",
-    pickupDate: (posting && posting.pickupDate) || todayDateInput(),
-    pickupTimeBegin: posting ? toTimeInput(posting.pickupTimeBegin) : "",
-    pickupTimeEnd: posting ? toTimeInput(posting.pickupTimeEnd) : "",
-    notes: posting ? posting.notes || "" : "",
-    foodTypes: posting ? posting.foodTypes || [] : [],
-    allergens: posting ? posting.allergens || [] : [],
-    storage: posting ? posting.storage || "ambient" : "ambient",
+    address: source ? source.fromRestaurantAddress : "",
+    pickupDate: (posting && posting.pickupDate) || (schedule && schedule.startsOn) || todayDateInput(),
+    endsOn: (schedule && schedule.endsOn) || "",
+    daysOfWeek: schedule ? schedule.daysOfWeek.map(String) : [String(new Date().getDay())],
+    pickupTimeBegin: source ? toTimeInput(source.pickupTimeBegin) : "",
+    pickupTimeEnd: source ? toTimeInput(source.pickupTimeEnd) : "",
+    notes: source ? source.notes || "" : "",
+    foodTypes: source ? source.foodTypes || [] : [],
+    allergens: source ? source.allergens || [] : [],
+    storage: source ? source.storage || "ambient" : "ambient",
     preparedAt: posting ? toLocalInput(posting.preparedAt) : "",
-    quantity: posting ? posting.quantity || "" : "",
-    estimatedWeightKg: posting && posting.estimatedWeightKg ? String(posting.estimatedWeightKg) : "",
+    quantity: source ? source.quantity || "" : "",
+    estimatedWeightKg: source && source.estimatedWeightKg ? String(source.estimatedWeightKg) : "",
   });
   // null: unchanged; a data URL: new photo; "": remove the existing one.
   const [photo, setPhoto] = useState(null);
@@ -91,7 +98,9 @@ const CreatePostingModal = ({ posting, onClose, onSaved }) => {
     if (!form.pickupDate) return "Please enter the pickup date.";
     if (!form.pickupTimeBegin || !form.pickupTimeEnd) return "Please enter the pickup start and end times.";
     if (form.pickupTimeEnd <= form.pickupTimeBegin) return "The pickup end time must be after the start time.";
-    if (new Date(`${form.pickupDate}T${form.pickupTimeEnd}`) <= new Date()) {
+    if (repeat && form.daysOfWeek.length === 0) return "Please choose at least one day of the week.";
+    if (repeat && form.endsOn && form.endsOn < form.pickupDate) return "The end date must be after the start date.";
+    if (!repeat && new Date(`${form.pickupDate}T${form.pickupTimeEnd}`) <= new Date()) {
       return "That pickup window has already ended. Please choose a later date or time.";
     }
     if (form.foodTypes.length === 0) return "Please choose at least one type of food.";
@@ -116,6 +125,39 @@ const CreatePostingModal = ({ posting, onClose, onSaved }) => {
       setError(problem);
       return;
     }
+    const food = {
+      notes: form.notes,
+      foodTypes: form.foodTypes,
+      allergens: form.allergens,
+      storage: form.storage,
+      quantity: form.quantity,
+      estimatedWeightKg: form.estimatedWeightKg,
+    };
+    if (repeat) {
+      const scheduleBody = {
+        ...food,
+        fromRestaurantAddress: fullAddress(),
+        daysOfWeek: form.daysOfWeek.map(Number),
+        pickupTimeBegin: form.pickupTimeBegin,
+        pickupTimeEnd: form.pickupTimeEnd,
+        startsOn: form.pickupDate,
+        endsOn: form.endsOn,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+      setError("");
+      setSubmitting(true);
+      try {
+        const res = schedule
+          ? await api.post(`schedule/${schedule._id}/edit`, scheduleBody)
+          : await api.post("schedule", scheduleBody);
+        onSaved(res.data);
+      } catch (err) {
+        setError(errorMessage(err));
+        setSubmitting(false);
+      }
+      return;
+    }
+
     const body = {
       fromRestaurantAddress: fullAddress(),
       pickupDate: form.pickupDate,
@@ -145,16 +187,19 @@ const CreatePostingModal = ({ posting, onClose, onSaved }) => {
     }
   };
 
-  const previewSrc = photo || (photo === null && isEdit && posting.hasPhoto ? photoUrl(posting) : "");
+  const previewSrc = photo || (photo === null && posting && posting.hasPhoto ? photoUrl(posting) : "");
+  const title = schedule ? "Edit weekly donation" : posting ? "Edit posting" : repeat ? "Set up a weekly donation" : "Post surplus food";
 
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="sm" fullScreen={fullScreen} aria-labelledby="posting-dialog-title">
       <DialogTitle id="posting-dialog-title" sx={{ pr: 7 }}>
         <Typography component="span" variant="h5" sx={{ display: "block", color: "primary.dark" }}>
-          {isEdit ? "Edit posting" : "Post surplus food"}
+          {title}
         </Typography>
         <Typography component="span" variant="body2" color="text.secondary">
-          Nearby food banks will see this and can claim it.
+          {repeat
+            ? "We'll post this automatically on the days you choose, and food banks can claim each one."
+            : "Nearby food banks will see this and can claim it."}
         </Typography>
         <IconButton aria-label="Close" onClick={onClose} sx={{ position: "absolute", right: 12, top: 12 }}>
           <CloseRoundedIcon />
@@ -182,20 +227,20 @@ const CreatePostingModal = ({ posting, onClose, onSaved }) => {
               <TextField select label="Storage" {...bind("storage")}>
                 {Object.entries(STORAGE).map(([key, s]) => <MenuItem key={key} value={key}>{s.label}</MenuItem>)}
               </TextField>
-              <TextField
+              {!repeat && <TextField
                 label="Prepared at"
                 type="datetime-local"
                 InputLabelProps={{ shrink: true }}
                 inputProps={{ max: toLocalInput(new Date().toISOString()) }}
                 helperText="Optional"
                 {...bind("preparedAt")}
-              />
+              />}
             </Box>
             <Typography variant="body2" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>Allergens it contains</Typography>
             <ChipPicker label="Allergens" options={ALLERGEN_OPTIONS} exclusive={["none"]} value={form.allergens} onChange={(v) => set("allergens", v)} />
           </Section>
 
-          <Section title="Photo" hint="Optional, but food banks are more likely to claim food they can see.">
+          {!repeat && <Section title="Photo" hint="Optional, but food banks are more likely to claim food they can see.">
             {previewSrc ? (
               <Stack direction="row" spacing={2} alignItems="center">
                 <Box component="img" src={previewSrc} alt="Food photo preview" sx={{ width: 120, height: 90, objectFit: "cover", borderRadius: 2, border: 1, borderColor: "divider" }} />
@@ -213,7 +258,7 @@ const CreatePostingModal = ({ posting, onClose, onSaved }) => {
                 <input hidden type="file" accept="image/*" capture="environment" onChange={choosePhoto} />
               </Button>
             )}
-          </Section>
+          </Section>}
 
           <Section title="Where">
             {isEdit
@@ -222,11 +267,26 @@ const CreatePostingModal = ({ posting, onClose, onSaved }) => {
           </Section>
 
           <Section title="When">
+            {!posting && (
+              <FormControlLabel
+                sx={{ mb: 1.5 }}
+                control={<Switch checked={repeat} onChange={(e) => setRepeat(e.target.checked)} disabled={Boolean(schedule)} />}
+                label="Repeat every week"
+              />
+            )}
+            {repeat && (
+              <Box sx={{ mb: 2 }}>
+                <ChipPicker label="Days of the week" options={WEEKDAYS} value={form.daysOfWeek} onChange={(v) => set("daysOfWeek", v)} />
+              </Box>
+            )}
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1.2fr 1fr 1fr" }, gap: 1.5 }}>
-              <TextField type="date" required label="Pickup date" InputLabelProps={{ shrink: true }} inputProps={{ min: todayDateInput() }} {...bind("pickupDate")} />
+              <TextField type="date" required label={repeat ? "Starting" : "Pickup date"} InputLabelProps={{ shrink: true }} inputProps={{ min: schedule ? undefined : todayDateInput() }} {...bind("pickupDate")} />
               <TextField type="time" required label="From" InputLabelProps={{ shrink: true }} {...bind("pickupTimeBegin")} />
               <TextField type="time" required label="Until" InputLabelProps={{ shrink: true }} {...bind("pickupTimeEnd")} />
             </Box>
+            {repeat && (
+              <TextField type="date" label="Last day (optional)" InputLabelProps={{ shrink: true }} sx={{ mt: 1.5, width: { xs: "100%", sm: 220 } }} {...bind("endsOn")} />
+            )}
           </Section>
 
           <Section title="Notes for the food bank">
@@ -243,7 +303,7 @@ const CreatePostingModal = ({ posting, onClose, onSaved }) => {
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} color="inherit">Cancel</Button>
         <Button onClick={submit} disabled={submitting} variant="contained">
-          {submitting ? "Saving…" : isEdit ? "Save changes" : "Post it"}
+          {submitting ? "Saving…" : isEdit ? "Save changes" : repeat ? "Start weekly donation" : "Post it"}
         </Button>
       </DialogActions>
     </Dialog>
