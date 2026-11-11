@@ -148,7 +148,7 @@ Legend: ✅ works as intended (from code) · ⚠️ partially works / has defect
 
 ## 9. Future Feature Recommendations
 
-*Update (November 2026): every Small and Medium item below has been built: notifications, distance and filter search, recurring donations, impact dashboard and donation records, verification and admin console, food-safety fields and photos, recipient profiles, per-posting messaging, and the PWA. Volunteer drivers and reliability signals are still to come.*
+*Update (November 2026): every Small and Medium item below has been built: notifications, distance and filter search, recurring donations, impact dashboard and donation records, verification and admin console, food-safety fields and photos, recipient profiles, per-posting messaging, and the PWA. Volunteer drivers and reliability signals followed in a later round, with a full UI review recorded in [docs/UI_REVIEW.md](docs/UI_REVIEW.md).*
 
 | Feature | User Need Addressed | Rationale | Effort (S/M/L) |
 |---|---|---|---|
