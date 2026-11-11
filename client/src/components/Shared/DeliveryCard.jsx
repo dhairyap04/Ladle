@@ -24,6 +24,7 @@ import { formatPickupWindow } from "../../time";
 import { STORAGE } from "../../food";
 import { VEHICLES } from "../../roles";
 import ReliabilityBadge from "./ReliabilityBadge";
+import DeliveryChat from "./DeliveryChat";
 
 export const DELIVERY_STATUS = {
   requested: { label: "Looking for a driver", sx: { bgcolor: "#FFF1D6", color: "#7A4700" } },
@@ -66,7 +67,7 @@ const Contact = ({ icon: Icon, label, person }) =>
   ) : null;
 
 // A delivery job. `viewer` is "driver" or "foodbank" (actions) or "restaurant" (read-only).
-const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, title }) => {
+const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, title, userId }) => {
   const [confirming, setConfirming] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -138,6 +139,7 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, ti
           {delivery.driverReliability && <ReliabilityBadge summary={delivery.driverReliability} noun="delivery" />}
         </Stack>
       )}
+      {delivery.contacts && userId && <DeliveryChat deliveryId={delivery._id} userId={userId} />}
 
       {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}
       {(actions.length > 0 || showPostingLink) && (

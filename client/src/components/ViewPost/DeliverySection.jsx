@@ -70,7 +70,7 @@ const DeliverySection = ({ post, user, isOwner, isClaimer, onPostChanged, onDeli
 
   return (
     <Stack spacing={1.5}>
-      {delivery && <DeliveryCard delivery={delivery} viewer={viewer} onChanged={changed} title="Volunteer delivery" />}
+      {delivery && <DeliveryCard delivery={delivery} viewer={viewer} onChanged={changed} title="Volunteer delivery" userId={user.id} />}
       {canAsk && (
         <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 4 }}>
           <Stack direction="row" spacing={1.5} alignItems="flex-start">

@@ -65,7 +65,7 @@ const DriverHome = ({ user }) => {
           <Box component="section" sx={{ mb: 4 }}>
             <Typography component="h2" variant="h6">Your deliveries in progress</Typography>
             <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-              {active.map((d) => <DeliveryCard key={d._id} delivery={d} viewer="driver" onChanged={load} showPostingLink />)}
+              {active.map((d) => <DeliveryCard key={d._id} delivery={d} viewer="driver" onChanged={load} showPostingLink userId={user.id} />)}
             </Stack>
           </Box>
         )}

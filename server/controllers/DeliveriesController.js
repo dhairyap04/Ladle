@@ -7,6 +7,7 @@ const { formatWindow } = require("../format");
 const { distanceKm } = require("../geocode");
 const { driverProblems } = require("../matching");
 const reliability = require("../reliability");
+const mongoMessages = require("../models/Messages");
 
 const MISSED_AFTER_HOURS = 2; // accepted but not collected this long after the window -> missed
 const MAX_DRIVER_ALERTS = 100;
@@ -289,6 +290,57 @@ const cancelDelivery = async (req, res) => {
   return res.status(200).json(await view(delivery, req.user));
 };
 
+// The people in a delivery's group chat: the food bank, the restaurant and,
+// once one has accepted, the driver. Sends the error itself and returns null
+// when the caller isn't one of them.
+const loadChat = async (req, res) => {
+  const delivery = await load(req, res);
+  if (!delivery) return null;
+  const members = [delivery.foodBankId, delivery.donorId, delivery.driverId].filter(Boolean).map(String);
+  if (!members.includes(req.user.id)) {
+    res.status(403).json({ msg: "Only the restaurant, food bank and driver can see this chat." });
+    return null;
+  }
+  return { delivery, members };
+};
+
+// GET /delivery/:id/messages
+const listDeliveryMessages = async (req, res) => {
+  const chat = await loadChat(req, res);
+  if (!chat) return undefined;
+  const messages = await mongoMessages.find({ deliveryId: chat.delivery._id }).sort({ createdAt: 1 }).limit(500);
+  return res.status(200).json(messages);
+};
+
+// POST /delivery/:id/messages { body } — once a driver is on the job.
+const sendDeliveryMessage = async (req, res) => {
+  const chat = await loadChat(req, res);
+  if (!chat) return undefined;
+  const { delivery, members } = chat;
+  if (!delivery.driverId) {
+    return res.status(409).json({ msg: "The chat opens once a driver accepts the delivery." });
+  }
+  const body = typeof (req.body || {}).body === "string" ? req.body.body.trim() : "";
+  if (!body) return res.status(400).json({ msg: "Please write a message." });
+  if (body.length > 1000) return res.status(400).json({ msg: "Messages can be up to 1000 characters." });
+  const message = await mongoMessages.create({
+    postingId: delivery.postingId,
+    foodBankId: delivery.foodBankId,
+    deliveryId: delivery._id,
+    senderId: req.user.id,
+    senderName: req.user.name,
+    body,
+  });
+  await notify(members.filter((id) => id !== req.user.id), {
+    type: "new_message",
+    title: `${req.user.name} (delivery from ${delivery.restaurantName})`,
+    body: body.length > 140 ? `${body.slice(0, 137)}…` : body,
+    link: `/view_post/${delivery.postingId}#delivery-chat`,
+    postingId: delivery.postingId,
+  });
+  return res.status(201).json(message);
+};
+
 // Cancels any open delivery for a posting, e.g. when the food bank releases its claim.
 async function cancelForPosting(postingId, reason) {
   const active = await mongoDeliveries.find({ postingId, status: { $in: ["requested", "accepted"] } });
@@ -313,4 +365,6 @@ module.exports = {
   cancelDelivery,
   expireDeliveries,
   cancelForPosting,
+  listDeliveryMessages,
+  sendDeliveryMessage,
 };

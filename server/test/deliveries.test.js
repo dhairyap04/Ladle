@@ -139,3 +139,20 @@ test("drivers' impact counts their deliveries", async () => {
   assert.strictEqual(r.body.totalKg, 20);
   assert.strictEqual(r.body.topPartners[0].name, "Bank");
 });
+
+test("delivery group chat: the three people involved, once a driver accepts", async () => {
+  const p = await create({ estimatedWeightKg: 5 });
+  await bank.post(`/posting/${p.body._id}/claim`);
+  const d = (await bank.post("/delivery").send({ postingId: p.body._id })).body;
+  assert.strictEqual((await bank.post(`/delivery/${d._id}/messages`).send({ body: "Anyone?" })).status, 409, "no driver yet");
+  await driver.post(`/delivery/${d._id}/accept`);
+  assert.strictEqual((await driver.post(`/delivery/${d._id}/messages`).send({ body: "Running 10 minutes late" })).status, 201);
+  assert.strictEqual((await donor.post(`/delivery/${d._id}/messages`).send({ body: "No problem" })).status, 201);
+  assert.strictEqual((await driver2.get(`/delivery/${d._id}/messages`)).status, 403, "other drivers can't read it");
+  const seen = await bank.get(`/delivery/${d._id}/messages`);
+  assert.deepStrictEqual(seen.body.map((m) => m.body), ["Running 10 minutes late", "No problem"]);
+  assert.ok((await inbox(bank)).some((n) => /Sam \(delivery from Cafe\)/.test(n.title)));
+  // The restaurant/food bank thread on the posting stays separate.
+  const threads = (await donor.get(`/posting/${p.body._id}/messages`)).body.threads;
+  assert.ok(threads.every((t) => t.messages.every((m) => !m.deliveryId)));
+});
