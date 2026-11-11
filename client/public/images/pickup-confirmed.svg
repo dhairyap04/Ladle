@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" role="img" aria-label="A bag of food with a green check mark">
+  <ellipse cx="120" cy="108" rx="104" ry="86" fill="#E6F2EC"/>
+  <ellipse cx="120" cy="180" rx="64" ry="8" fill="#0F4A32" opacity="0.08"/>
+  <!-- greens and bread -->
+  <path d="M98 70C90 44 104 32 112 40c-2 12-4 22-6 30Z" fill="#1B6B4A"/>
+  <path d="M118 70c4-24 22-32 28-24-6 10-12 18-18 24Z" fill="#2E8B62"/>
+  <rect x="126" y="24" width="16" height="56" rx="8" transform="rotate(18 134 52)" fill="#E9B872" stroke="#B5803F" stroke-width="2"/>
+  <circle cx="88" cy="64" r="11" fill="#F08A24"/>
+  <!-- bag -->
+  <path d="M68 68h104l-8 104a8 8 0 0 1-8 7H84a8 8 0 0 1-8-7Z" fill="#E7C796"/>
+  <path d="M68 68h104l-2 16H70Z" fill="#D9B27A"/>
+  <path d="M100 104S84 122 84 132a16 16 0 0 0 32 0c0-10-16-28-16-28Z" fill="#1B6B4A" transform="translate(20 0)"/>
+  <path d="M112 132h16a8 8 0 0 1-16 0Z" fill="#FFFFFF"/>
+  <!-- check badge -->
+  <circle cx="178" cy="62" r="26" fill="#1B6B4A" stroke="#FFFFFF" stroke-width="5"/>
+  <path d="M166 62l8 8 16-17" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- sparkles -->
+  <g fill="#F08A24"><circle cx="40" cy="60" r="5"/><circle cx="210" cy="140" r="6"/><circle cx="56" cy="150" r="4"/></g>
+</svg>

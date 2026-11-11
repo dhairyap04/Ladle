@@ -176,14 +176,13 @@ const MainPage = () => {
           </Alert>
         )}
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: { xs: 3, md: 4 }, alignItems: "start" }}>
-          <Box sx={{ order: { xs: 2, md: 1 } }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) minmax(0, 1fr)" }, gap: { xs: 3, md: 4 }, alignItems: "start" }}>
+          <Box>
             {isRestaurant ? <>{mineList}{openList}</> : <>{openList}{mineList}</>}
           </Box>
           <Paper
             variant="outlined"
             sx={{
-              order: { xs: 1, md: 2 },
               position: { md: "sticky" },
               top: { md: 88 },
               height: { xs: 260, md: "calc(100vh - 120px)" },

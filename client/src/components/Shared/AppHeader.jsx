@@ -32,7 +32,7 @@ const AppHeader = ({ user }) => {
     >
       <Container maxWidth="lg" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, py: 1.5 }}>
         <Logo to={user ? "/main" : "/"} />
-        <Box component="nav" sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 1 } }}>
+        <Box component="nav" sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 1 }, "& .MuiButton-root": { whiteSpace: "nowrap" } }}>
           {user ? (
             <>
               <Button component={RouterLink} to="/main" color="inherit" sx={{ display: { xs: "none", sm: "inline-flex" } }}>
@@ -41,7 +41,7 @@ const AppHeader = ({ user }) => {
               <Button component={RouterLink} to="/view_profile" color="inherit">
                 Profile
               </Button>
-              <Button onClick={logOut} variant="outlined" startIcon={<LogoutRoundedIcon />}>
+              <Button onClick={logOut} variant="outlined" startIcon={<LogoutRoundedIcon />} sx={{ "& .MuiButton-startIcon": { display: { xs: "none", sm: "inherit" } } }}>
                 Log out
               </Button>
             </>
