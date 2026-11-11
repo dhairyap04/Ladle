@@ -10,6 +10,7 @@ import ImpactPage from "./components/ImpactPage/ImpactPage";
 import ReceiptPage from "./components/ReceiptPage/ReceiptPage";
 import AdminPage from "./components/AdminPage/AdminPage";
 import NotFound from "./components/NotFound";
+import { ForgotPasswordPage, ResetPasswordPage } from "./components/AuthPage/PasswordPages";
 
 export default function App() {
 
@@ -26,6 +27,8 @@ export default function App() {
             <Route path="/impact" component={ImpactPage} exact />
             <Route path="/receipt/:id" component={ReceiptPage} exact />
             <Route path="/admin" component={AdminPage} exact />
+            <Route path="/forgot-password" component={ForgotPasswordPage} exact />
+            <Route path="/reset-password" component={ResetPasswordPage} exact />
             <Route component={NotFound} />
         </Switch>
       </div>

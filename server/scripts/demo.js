@@ -13,7 +13,8 @@
 //   admin@demo.ladle        Ladle Admin            admin console (verification queue, flags)
 //
 // Addresses are placed around Edmonton by a fake geocoder (no Google key needed),
-// and emails are printed to the console instead of being sent.
+// and emails are printed to the console instead of being sent (password reset
+// emails include their link, so "Forgot password" works too).
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const request = require("supertest");
 
@@ -169,7 +170,14 @@ async function seed(app) {
   const mongoose = require("mongoose");
   await mongoose.connect(process.env.MONGO_URI, { autoIndex: false });
   require("../geocode").setGeocoder(fakeGeocode);
-  require("../notify").setTransport({ sendMail: async (m) => console.log(`[email] to ${m.to}: ${m.subject}`) });
+  require("../notify").setTransport({
+    sendMail: async (m) => {
+      console.log(`[email] to ${m.to}: ${m.subject}`);
+      // Show reset links so "Forgot password" can be tried without an inbox.
+      const link = /https?:\/\/\S*reset-password\S*/.exec(m.text || "");
+      if (link) console.log(`        ${link[0]}`);
+    },
+  });
   await require("../migrate").migrate();
 
   const app = require("../app");
