@@ -35,8 +35,8 @@ const RateOne = ({ postingId, party, existing, onSaved }) => {
         value={stars}
         onChange={(e, v) => { setStars(v); setSaved(false); }}
         aria-labelledby={labelId}
-        size="large"
-        sx={{ color: "#A34F06", my: 0.5 }}
+        // Bigger stars on phones: about 44px touch targets.
+        sx={{ color: "#A34F06", my: 0.5, fontSize: { xs: "2.75rem", sm: "2.25rem" } }}
       />
       {stars && (
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "flex-start" }}>

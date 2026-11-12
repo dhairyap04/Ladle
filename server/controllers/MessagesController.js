@@ -47,7 +47,10 @@ const listMessages = async (req, res) => {
   if (!ctx) return undefined;
   const { posting, isDonor } = ctx;
 
-  const filter = isDonor ? { postingId: posting._id } : { postingId: posting._id, foodBankId: req.user.id };
+  // Delivery group chats are separate (see DeliveriesController).
+  const filter = isDonor
+    ? { postingId: posting._id, deliveryId: { $exists: false } }
+    : { postingId: posting._id, foodBankId: req.user.id, deliveryId: { $exists: false } };
   const messages = await mongoMessages.find(filter).sort({ createdAt: 1 }).limit(500);
 
   const threads = new Map();
@@ -95,7 +98,7 @@ const sendMessage = async (req, res) => {
     foodBankId = req.body.foodBankId;
     const isClaimer = posting.claimedBy && String(posting.claimedBy) === foodBankId;
     const hasThread = mongoose.Types.ObjectId.isValid(foodBankId) &&
-      (await mongoMessages.exists({ postingId: posting._id, foodBankId }));
+      (await mongoMessages.exists({ postingId: posting._id, foodBankId, deliveryId: { $exists: false } }));
     if (!isClaimer && !hasThread) {
       return res.status(400).json({ msg: "You can reply to food banks that have messaged you or claimed this posting." });
     }

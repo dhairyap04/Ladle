@@ -4,6 +4,7 @@ const nodemailer = require("nodemailer");
 const mongoNotifications = require("./models/Notifications");
 const mongoUsers = require("./models/Users");
 const { smtpUrl, emailFrom, clientOrigins } = require("./config");
+const { sendPush } = require("./push");
 
 let transport = smtpUrl ? nodemailer.createTransport(smtpUrl) : null;
 
@@ -39,7 +40,7 @@ async function notify(userIds, message) {
   try {
     await mongoNotifications.insertMany(ids.map((userId) => ({ ...message, userId })));
     const users = await mongoUsers.find({ _id: { $in: ids } }, "email notifyByEmail");
-    await sendEmails(users, message);
+    await Promise.all([sendEmails(users, message), sendPush(ids, message)]);
   } catch (err) {
     console.error("Notification failed:", err.message);
   }

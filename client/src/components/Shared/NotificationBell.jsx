@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHistory } from "react-router-dom";
-import { Badge, Box, Button, Divider, IconButton, ListItemButton, Popover, Stack, Typography } from "@mui/material";
+import { Badge, Box, Button, Divider, FormControlLabel, IconButton, ListItemButton, Popover, Stack, Switch, Typography } from "@mui/material";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 import api from "../../api";
+import { disablePush, enablePush, pushStatus } from "../../pushClient";
 
 const POLL_MS = 30000;
 
@@ -26,6 +27,21 @@ const NotificationBell = () => {
   const [anchor, setAnchor] = useState(null);
   const [permission, setPermission] = useState(browserAlertsSupported() ? Notification.permission : "unsupported");
   const seen = useRef(null); // ids already shown, so only new ones raise an alert
+  const [push, setPush] = useState({ available: false, subscribed: false });
+  const [pushError, setPushError] = useState("");
+
+  useEffect(() => { pushStatus().then(setPush); }, []);
+
+  const togglePush = async (on) => {
+    setPushError("");
+    try {
+      if (on) await enablePush(push.publicKey);
+      else await disablePush();
+    } catch (err) {
+      setPushError(err.message);
+    }
+    setPush(await pushStatus());
+  };
 
   const load = useCallback(async () => {
     try {
@@ -114,7 +130,23 @@ const NotificationBell = () => {
             ))
           )}
         </Box>
-        {permission === "default" && (
+        {push.available && (
+          <>
+            <Divider />
+            <Box sx={{ px: 2, py: 1 }}>
+              <FormControlLabel
+                control={<Switch checked={push.subscribed} onChange={(e) => togglePush(e.target.checked)} disabled={push.blocked && !push.subscribed} />}
+                label={<Typography variant="body2" sx={{ fontWeight: 600 }}>Push notifications on this device</Typography>}
+              />
+              {(pushError || (push.blocked && !push.subscribed)) && (
+                <Typography variant="caption" color="error" sx={{ display: "block" }}>
+                  {pushError || "Notifications are blocked for this site. Allow them in your browser settings."}
+                </Typography>
+              )}
+            </Box>
+          </>
+        )}
+        {!push.available && permission === "default" && (
           <>
             <Divider />
             <Box sx={{ p: 1.5 }}>

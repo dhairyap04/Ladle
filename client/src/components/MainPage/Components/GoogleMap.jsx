@@ -3,6 +3,10 @@ import { Box, Typography } from "@mui/material";
 import MapRoundedIcon from "@mui/icons-material/MapRounded";
 
 const MAPS_KEY = import.meta.env.REACT_APP_GCP_KEY;
+
+// Pages leave out the map entirely when there's no key, rather than showing
+// an empty panel.
+export const mapsEnabled = Boolean(MAPS_KEY);
 const DEFAULT_CENTER = { lat: 53.5052, lng: -113.4938 }; // Edmonton
 const DEFAULT_ZOOM = 11;
 

@@ -1,0 +1,12 @@
+{
+  "name": "ladle-e2e",
+  "private": true,
+  "description": "Browser tests for Ladle's main flows, against demo mode.",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.64.1"
+  }
+}

@@ -13,6 +13,7 @@ const {
 const { getReliability } = require("../controllers/ReliabilityController");
 const { forgotPassword, resetPassword, changePassword } = require("../controllers/PasswordController");
 const { rateLimit } = require("../rateLimit");
+const { exportData, deleteAccount } = require("../controllers/AccountController");
 
 const MIN = 60 * 1000;
 const emailKey = (req) => (req.body && typeof req.body.email === "string" ? req.body.email.trim() : "");
@@ -33,6 +34,8 @@ userRouter.post("/login", loginIpLimit, loginLimit, asyncHandler(loginUser_handl
 userRouter.post("/password/forgot", forgotIpLimit, forgotLimit, asyncHandler(forgotPassword));
 userRouter.post("/password/reset", resetLimit, asyncHandler(resetPassword));
 userRouter.post("/password/change", verify, changeLimit, asyncHandler(changePassword));
+userRouter.get("/export", verify, asyncHandler(exportData));
+userRouter.post("/delete", verify, changeLimit, asyncHandler(deleteAccount));
 // No verify: an expired session should still be able to clear its cookies.
 userRouter.post("/logout", logoutUser_handler);
 userRouter.get("/isAuth", verify, isAuthUser_handler);

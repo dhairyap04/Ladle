@@ -14,5 +14,7 @@ deliveryRouter.post("/:id/release", requireDriver, asyncHandler(d.releaseDeliver
 deliveryRouter.post("/:id/picked-up", requireDriver, asyncHandler(d.markCollected));
 deliveryRouter.post("/:id/delivered", requireDriver, asyncHandler(d.markDelivered));
 deliveryRouter.post("/:id/cancel", requireFoodbank, asyncHandler(d.cancelDelivery));
+deliveryRouter.get("/:id/messages", asyncHandler(d.listDeliveryMessages));
+deliveryRouter.post("/:id/messages", asyncHandler(d.sendDeliveryMessage));
 
 module.exports = deliveryRouter;

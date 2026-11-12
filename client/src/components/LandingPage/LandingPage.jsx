@@ -1,5 +1,5 @@
 import { Link as RouterLink } from "react-router-dom";
-import { Box, Button, Chip, Container, Link, Paper, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Container, Link, Paper, Stack, Typography } from "@mui/material";
 import PostAddRoundedIcon from "@mui/icons-material/PostAddRounded";
 import TouchAppRoundedIcon from "@mui/icons-material/TouchAppRounded";
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
@@ -86,10 +86,16 @@ const IconBadge = ({ icon: Icon, tone = "leaf" }) => (
 const LandingPage = () => {
   usePageTitle("");
   const user = useAuthUser();
+  const deleted = new URLSearchParams(window.location.search).get("deleted") === "1";
 
   return (
     <>
       <AppHeader user={user} />
+      {deleted && (
+        <Container maxWidth="lg" sx={{ pt: 3 }}>
+          <Alert severity="success">Your account has been deleted. Thank you for helping reduce food waste.</Alert>
+        </Container>
+      )}
 
       {/* Hero */}
       <Container maxWidth="lg" component="main">
@@ -185,9 +191,16 @@ const LandingPage = () => {
       <Box component="footer" sx={{ borderTop: 1, borderColor: "divider", py: 4, mt: "auto" }}>
         <Container maxWidth="lg" sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2, alignItems: { sm: "center" }, justifyContent: "space-between" }}>
           <Logo size={28} />
-          <Typography variant="body2" color="text.secondary">
-            Built by Dhairya Prajapati · Reducing food waste, one pickup at a time.
-          </Typography>
+          <Box sx={{ textAlign: { sm: "right" } }}>
+            <Typography variant="body2" color="text.secondary">
+              Built by Dhairya Prajapati · Reducing food waste, one pickup at a time.
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
+              <Link component={RouterLink} to="/privacy">Privacy</Link>{" · "}
+              <Link component={RouterLink} to="/terms">Terms</Link>{" · "}
+              <Link component={RouterLink} to="/food-safety">Food safety</Link>
+            </Typography>
+          </Box>
         </Container>
       </Box>
     </>
