@@ -36,7 +36,7 @@ export const OfflineBanner = () => {
   return (
     <Slide in={offline} direction="down" mountOnEnter unmountOnExit>
       <Alert severity="warning" icon={<CloudOffRoundedIcon />} sx={{ borderRadius: 0, justifyContent: "center" }} role="status">
-        You&apos;re offline. You can look around, but nothing can be posted or claimed until you reconnect.
+        You&apos;re offline. Drivers can still record a pickup or drop-off; it&apos;s sent when you reconnect. Posting and claiming need a connection.
       </Alert>
     </Slide>
   );

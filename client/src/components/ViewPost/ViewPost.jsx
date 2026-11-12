@@ -36,6 +36,7 @@ import AppHeader from '../Shared/AppHeader';
 import { mapPoints } from '../../mapPoints';
 import MessagesPanel from './MessagesPanel';
 import DeliverySection from './DeliverySection';
+import DirectionsButton from "../Shared/DirectionsButton";
 import { roleOf } from '../../roles';
 import ReliabilityBadge from '../Shared/ReliabilityBadge';
 import RatingCard from './RatingCard';
@@ -302,7 +303,12 @@ const ViewPost = () => {
           <DetailRow icon={ScheduleRoundedIcon} label="Pickup window">
             {post.pickupDate ? formatPickupWindow(post) : `Posted ${new Date(post.createdAt).toDateString()}`}
           </DetailRow>
-          <DetailRow icon={PlaceRoundedIcon} label="Pickup address">{post.fromRestaurantAddress}</DetailRow>
+          <DetailRow icon={PlaceRoundedIcon} label="Pickup address">
+            {post.fromRestaurantAddress}
+            {isClaimer && post.status === "claimed" && (
+              <Box component="span" sx={{ display: "block", mt: 1 }}><DirectionsButton address={post.fromRestaurantAddress} /></Box>
+            )}
+          </DetailRow>
           <DetailRow icon={LunchDiningRoundedIcon} label="Food">
             {[
               (post.foodTypes || []).map((t) => FOOD_TYPES[t]).join(", ") || "Not specified",

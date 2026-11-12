@@ -13,6 +13,7 @@ import AppHeader from "../Shared/AppHeader";
 import ChipPicker from "../Shared/ChipPicker";
 import api, { errorMessage } from "../../api";
 import { InstallButton } from "../Shared/InstallGuide";
+import { forgetCachedUser } from "../../useAuthUser";
 import { FOOD_TYPES, WEEKDAYS } from "../../food";
 import usePageTitle from "../../usePageTitle";
 
@@ -187,6 +188,7 @@ const DataSection = () => {
     setError("");
     try {
       await api.post("user/delete", { password });
+      forgetCachedUser();
       history.replace("/?deleted=1");
     } catch (err) {
       setError(errorMessage(err));

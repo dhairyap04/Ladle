@@ -324,7 +324,7 @@ async function takeHandoff(req, res, stage) {
     );
   }
 
-  const now = new Date();
+  const now = handoff.handoffTime(body.clientAt, stage === "pickup" ? delivery.acceptedAt : delivery.pickedUpAt);
   const place = handoff.checkLocation(body.location, stage === "pickup" ? delivery.pickupLocation : delivery.dropoffLocation);
   delivery[`${stage}Proof`] = { at: now, method, ...place, hasPhoto: Boolean(photo) };
   const flags = new Set(delivery.flags || []);

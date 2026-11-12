@@ -18,6 +18,7 @@ const RECEIPT_ASSUME_HOURS = 72; // then count it as delivered
 const DISPUTE_DAYS = 7; // how long after a handoff a problem can be reported
 const MAX_KMH = 110; // faster than this between pickup and drop-off looks wrong
 const MIN_TRIP_KM_FOR_SPEED = 3;
+const MAX_OFFLINE_DELAY_MS = 12 * 3600e3; // a handoff saved offline must arrive within this
 
 const hasPoint = (p) => p && Array.isArray(p.coordinates) && p.coordinates.length === 2;
 const newCode = () => String(crypto.randomInt(0, 10000)).padStart(4, "0");
@@ -39,6 +40,17 @@ function checkLocation(loc, target) {
   const accuracy = Number.isFinite(Number(loc.accuracy)) ? Math.max(0, Number(loc.accuracy)) : 0;
   const allowance = NEAR_M + Math.min(accuracy, MAX_ACCURACY_ALLOWANCE_M);
   return { location: distanceM <= allowance ? "near" : "far", distanceM };
+}
+
+// When the handoff happened. A driver with no signal saves the handoff on
+// their phone and it's sent later with the time it happened (clientAt). That
+// time is used if it's plausible: not in the future, not too old, and not
+// before the previous step.
+function handoffTime(clientAt, notBefore, now = new Date()) {
+  const at = clientAt ? new Date(clientAt) : null;
+  if (!at || Number.isNaN(at.getTime()) || at > now || now - at > MAX_OFFLINE_DELAY_MS) return now;
+  if (notBefore && at < notBefore) return new Date(notBefore);
+  return at;
 }
 
 // Whether the drop-off came implausibly soon after the pickup.
@@ -143,6 +155,7 @@ module.exports = {
   newCode,
   codesMatch,
   checkLocation,
+  handoffTime,
   tooFast,
   setDriverCredit,
   processReceipts,
