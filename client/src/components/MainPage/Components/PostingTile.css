@@ -23,6 +23,24 @@ p {
   font-weight: 700;
 }
 
+.status-chip {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+  background: #e0e0e0;
+  color: #333;
+}
+
+.status-open { background: #e3f2fd; color: #0d47a1; }
+.status-claimed { background: #fff3e0; color: #8a4b00; }
+.status-picked_up { background: #e8f5e9; color: #1b5e20; }
+.status-expired,
+.status-cancelled { background: #eeeeee; color: #555; }
+
 .address {
   font-size: 15px;
   color: #575757;

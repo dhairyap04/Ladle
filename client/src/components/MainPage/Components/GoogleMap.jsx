@@ -1,4 +1,4 @@
-import { React, Component } from "react";
+import { Component } from "react";
 import GoogleMapReact from 'google-map-react';
 
 const TextComponent = ({ text }) => (
@@ -29,7 +29,7 @@ class SimpleMap extends Component {
       <GoogleMapReact
         defaultCenter={defaultProps.center}
         defaultZoom={defaultProps.zoom}
-        bootstrapURLKeys={{ key: process.env.REACT_APP_GCP_KEY }}
+        bootstrapURLKeys={{ key: import.meta.env.REACT_APP_GCP_KEY }}
       >
         {this.props.latlng.map((latlng, index) => {
           return <TextComponent

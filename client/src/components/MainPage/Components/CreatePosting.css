@@ -15,7 +15,8 @@
 
 .modal-container .modal {
   width: 45%;
-  height: 50%;
+  max-height: 90vh;
+  overflow-y: auto;
   background: white;
   display: flex;
   align-items: flex-start;
@@ -40,12 +41,16 @@
   margin-bottom: 20px;
 }
 
-.close-image {
-  height: 25px;
+.close-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
-.close-image:hover {
-  cursor: pointer;
+.close-image {
+  height: 25px;
+  display: block;
 }
 
 .pickup-period {

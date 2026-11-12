@@ -1,8 +1,6 @@
 import "./styles.css";
 import { BrowserRouter, Route, Switch } from "react-router-dom";
-// import React, { useState, useEffect} from "react"
 import LandingPage from "./components/LandingPage/LandingPage";
-import Header from "./components/Header/Header";
 import MainPage from "./components/MainPage/MainPage";
 import AuthPage from "./components/AuthPage/AuthPage";
 import ProfilePage from "./components/ProfilePage/ProfilePage";
