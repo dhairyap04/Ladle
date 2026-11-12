@@ -22,8 +22,17 @@ const PASSWORD = "demo-password";
 const PORT = process.env.PORT || "5055";
 const CLIENT_ORIGINS = process.env.CLIENT_ORIGINS || "http://localhost:3000";
 
-// Stable fake coordinates in Edmonton for any address.
+// The demo's own addresses at their real places in Edmonton, so the map and
+// distances look right; anything else typed gets stable made-up coordinates.
+const DEMO_PLACES = {
+  "10150 jasper ave, edmonton, ab": { lat: 53.5412, lng: -113.4946 },
+  "8215 112 st nw, edmonton, ab": { lat: 53.5196, lng: -113.5167 },
+  "10418 82 ave nw, edmonton, ab": { lat: 53.5182, lng: -113.4983 },
+  "11420 98 ave nw, edmonton, ab": { lat: 53.5367, lng: -113.5187 },
+  "10010 105 st nw, edmonton, ab": { lat: 53.5390, lng: -113.4994 },
+};
 const fakeGeocode = async (address) => {
+  if (DEMO_PLACES[address.trim().toLowerCase()]) return DEMO_PLACES[address.trim().toLowerCase()];
   let h = 0;
   for (const c of address.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return { lat: 53.48 + ((h % 1000) / 1000) * 0.14, lng: -113.6 + (((h >> 10) % 1000) / 1000) * 0.22 };
@@ -153,6 +162,61 @@ async function seed(app) {
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     foodTypes: ["bakery"], allergens: ["wheat"], quantity: "Day-old bread", estimatedWeightKg: 5,
   }), "weekly donation");
+
+  // Past donations over the last ten months, so the impact pages, track records
+  // and admin totals look like an account that has been in use for a while.
+  const mongoFoodPostings = require("../models/Postings");
+  const { geocodeToPoint } = require("../geocode");
+  const HISTORY = [
+    // [months ago, day of month, kg, food types, quantity, allergens]
+    [10, 14, 6, ["bakery"], "Day-old bread", ["wheat"]],
+    [9, 9, 8, ["bakery"], "Bread and rolls", ["wheat"]],
+    [8, 3, 11, ["prepared_meals"], "Pasta trays", ["wheat", "milk"]],
+    [8, 21, 5, ["bakery"], "Day-old bread", ["wheat"]],
+    [7, 12, 14, ["prepared_meals", "produce"], "Catering leftovers", ["none"]],
+    [6, 2, 7, ["bakery"], "Bread and pastries", ["wheat", "milk", "eggs"]],
+    [6, 19, 9, ["produce"], "Salad bar vegetables", ["none"]],
+    [5, 8, 12, ["prepared_meals"], "Rice and curry", ["none"]],
+    [5, 23, 6, ["bakery"], "Day-old bread", ["wheat"]],
+    [4, 5, 16, ["prepared_meals"], "Banquet leftovers", ["wheat", "milk"]],
+    [4, 18, 8, ["bakery"], "Bread and rolls", ["wheat"]],
+    [3, 7, 10, ["prepared_meals", "produce"], "Soup and salad", ["none"]],
+    [3, 20, 7, ["bakery"], "Day-old bread", ["wheat"]],
+    [2, 4, 13, ["prepared_meals"], "Lasagna trays", ["wheat", "milk"]],
+    [2, 16, 9, ["dairy_eggs", "bakery"], "Muffins and yogurt", ["wheat", "milk", "eggs"]],
+    [1, 6, 15, ["prepared_meals"], "Holiday party leftovers", ["wheat", "milk"]],
+    [1, 15, 8, ["bakery"], "Day-old bread", ["wheat"]],
+    [1, 27, 11, ["produce", "prepared_meals"], "Roasted vegetables", ["none"]],
+  ];
+  const jasperAddress = "10150 Jasper Ave, Edmonton, AB";
+  const jasperPoint = await geocodeToPoint(jasperAddress);
+  for (const [monthsAgo, day, kg, foodTypes, quantity, allergens] of HISTORY) {
+    const at = new Date();
+    at.setDate(1);
+    at.setMonth(at.getMonth() - monthsAgo);
+    at.setDate(day);
+    at.setHours(21, 30, 0, 0);
+    const past = await mongoFoodPostings.create({
+      donorId: restaurantId,
+      fromRestaurantName: "Harvest Table Bistro",
+      fromRestaurantAddress: jasperAddress,
+      pickupLocationName: "Jasper Ave",
+      location: jasperPoint,
+      pickupDate: ymd(at),
+      pickupTimeBegin: 2100,
+      pickupTimeEnd: 2200,
+      pickupEndsAt: at,
+      foodTypes, allergens, quantity, estimatedWeightKg: kg,
+      storage: foodTypes.includes("prepared_meals") ? "refrigerated" : "ambient",
+      status: "picked_up",
+      claimedBy: foodBankId,
+      claimedByName: "Northside Food Bank",
+      claimedAt: at,
+      pickedUpAt: at,
+    });
+    // Mongoose stamps "now" on create; backdate it like a real old posting.
+    await mongoFoodPostings.collection.updateOne({ _id: past._id }, { $set: { createdAt: at, updatedAt: at } });
+  }
 
   // The food bank asks to be verified, so the admin has something to review.
   await expectOk(foodBank.post("/user/verification/request"), "verification request");
