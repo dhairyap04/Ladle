@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 const mongoUsers = require("../models/Users");
 const mongoFoodPostings = require("../models/Postings");
-const mongoPostingPhotos = require("../models/PostingPhotos");
+const photos = require("../photostore");
 const mongoMessages = require("../models/Messages");
 const mongoNotifications = require("../models/Notifications");
 const mongoRecurringSchedules = require("../models/RecurringSchedules");
@@ -11,7 +11,6 @@ const mongoRatings = require("../models/Ratings");
 const mongoReliabilityEvents = require("../models/ReliabilityEvents");
 const mongoPasswordResets = require("../models/PasswordResets");
 const mongoPushSubscriptions = require("../models/PushSubscriptions");
-const mongoDeliveryPhotos = require("../models/DeliveryPhotos");
 const { clearAuthCookies } = require("./authHelper");
 const { publicUser } = require("./UserController");
 const reliability = require("../reliability");
@@ -77,14 +76,20 @@ const deleteAccount = async (req, res) => {
   }
 
   // Their open postings are withdrawn; photos go with the account.
-  const mine = await mongoFoodPostings.find({ donorId: id }, "_id");
   await mongoFoodPostings.updateMany({ donorId: id, status: "open" }, { $set: { status: "cancelled" } });
-  await mongoPostingPhotos.deleteMany({ postingId: { $in: mine.map((p) => p._id) } });
+  const withPhotos = await mongoFoodPostings.find({ donorId: id, hasPhoto: true }, "_id");
+  for (const p of withPhotos) await photos.remove(photos.postingKey(p._id));
   await mongoFoodPostings.updateMany({ donorId: id }, { $set: { fromRestaurantName: FORMER, hasPhoto: false, notes: "" } });
   await mongoFoodPostings.updateMany({ claimedBy: id }, { $set: { claimedByName: FORMER } });
   // Handoff photos the driver took go with their account.
-  const driven = await mongoDeliveries.find({ driverId: id }, "_id");
-  await mongoDeliveryPhotos.deleteMany({ deliveryId: { $in: driven.map((d) => d._id) } });
+  const driven = await mongoDeliveries.find(
+    { driverId: id, $or: [{ "pickupProof.hasPhoto": true }, { "dropoffProof.hasPhoto": true }] },
+    "pickupProof dropoffProof"
+  );
+  for (const d of driven) {
+    if (d.pickupProof && d.pickupProof.hasPhoto) await photos.remove(photos.deliveryKey(d._id, "pickup"));
+    if (d.dropoffProof && d.dropoffProof.hasPhoto) await photos.remove(photos.deliveryKey(d._id, "dropoff"));
+  }
   await mongoDeliveries.updateMany({ driverId: id }, { $set: { driverName: FORMER, "pickupProof.hasPhoto": false, "dropoffProof.hasPhoto": false } });
   await mongoDeliveries.updateMany({ foodBankId: id }, { $set: { foodBankName: FORMER } });
   await mongoDeliveries.updateMany({ donorId: id }, { $set: { restaurantName: FORMER } });

@@ -71,7 +71,7 @@ export const PrivacyPage = () => (
 
     <H2>Services that process data for us</H2>
     <Ul items={[
-      "Our hosting provider and database provider, which store Ladle's data.",
+      "Our hosting, database and file storage providers, which store Ladle's data and photos.",
       "Our email provider, to send notifications and password reset emails.",
       "Google Maps and Geocoding, when enabled, receive addresses to place them on the map.",
       "Google Fonts serves the typeface, which means your browser contacts Google when pages load.",

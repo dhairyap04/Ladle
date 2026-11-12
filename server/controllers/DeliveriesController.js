@@ -8,7 +8,7 @@ const { distanceKm } = require("../geocode");
 const { driverProblems } = require("../matching");
 const reliability = require("../reliability");
 const mongoMessages = require("../models/Messages");
-const mongoDeliveryPhotos = require("../models/DeliveryPhotos");
+const photos = require("../photostore");
 const handoff = require("../handoff");
 const { parsePhoto } = require("../photo");
 
@@ -319,11 +319,7 @@ async function takeHandoff(req, res, stage) {
       res.status(400).json({ msg: photo.error });
       return null;
     }
-    await mongoDeliveryPhotos.findOneAndUpdate(
-      { deliveryId: delivery._id, stage },
-      { contentType: photo.contentType, data: photo.data },
-      { upsert: true }
-    );
+    await photos.save(photos.deliveryKey(delivery._id, stage), photo);
   }
 
   const now = handoff.handoffTime(body.clientAt, stage === "pickup" ? delivery.acceptedAt : delivery.pickedUpAt);
@@ -483,7 +479,7 @@ const getHandoffPhoto = async (req, res) => {
   const isParty = [delivery.foodBankId, delivery.donorId, delivery.driverId].some((id) => id && String(id) === req.user.id);
   if (!isParty && !req.user.isAdmin) return res.status(403).json({ msg: "Only the people on this delivery can see its photos." });
   if (!["pickup", "dropoff"].includes(req.params.stage)) return notFound(res);
-  const photo = await mongoDeliveryPhotos.findOne({ deliveryId: delivery._id, stage: req.params.stage });
+  const photo = await photos.load(photos.deliveryKey(delivery._id, req.params.stage));
   if (!photo) return res.status(404).json({ msg: "No photo." });
   res.set("Content-Type", photo.contentType);
   res.set("Cache-Control", "private, max-age=86400");

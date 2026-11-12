@@ -169,6 +169,7 @@ async function seed(app) {
     ADMIN_EMAILS: "admin@demo.ladle",
     GOOGLE_MAPS_API_KEY: "",
     SMTP_URL: "",
+    PHOTO_STORAGE: "memory", // like the data, photos reset on restart
   });
   // Temporary push keys, so push notifications work in the demo (with a production
   // build of the client, where the service worker runs).

@@ -14,6 +14,7 @@ async function setup({ env: extraEnv = {}, beforeMigrate } = {}) {
     JWT_ACCESS_SECRET: "test-access",
     JWT_REFRESH_SECRET: "test-refresh",
     CLIENT_ORIGINS: "http://localhost:3000",
+    PHOTO_STORAGE: "memory",
     ...extraEnv,
   });
   await mongoose.connect(process.env.MONGO_URI, { autoIndex: false });

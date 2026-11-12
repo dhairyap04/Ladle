@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const mongoFoodPostings = require("../models/Postings");
-const mongoPostingPhotos = require("../models/PostingPhotos");
+const photos = require("../photostore");
 const { parsePhoto } = require("../photo");
 const mongoUsers = require("../models/Users");
 const { FOOD_TYPES, ALLERGENS, STORAGE } = require("../constants");
@@ -84,15 +84,10 @@ const parseFoodDetails = (body) => {
 // Saves, replaces or removes a posting's photo according to the request body.
 const applyPhotoChange = async (posting, body) => {
   if (body.photo) {
-    const { contentType, data } = parsePhoto(body.photo);
-    await mongoPostingPhotos.findOneAndUpdate(
-      { postingId: posting._id },
-      { contentType, data },
-      { upsert: true }
-    );
+    await photos.save(photos.postingKey(posting._id), parsePhoto(body.photo));
     posting.hasPhoto = true;
   } else if (body.removePhoto) {
-    await mongoPostingPhotos.deleteOne({ postingId: posting._id });
+    await photos.remove(photos.postingKey(posting._id));
     posting.hasPhoto = false;
   }
 };
@@ -272,6 +267,34 @@ const searchOrigin = (query, profile) => {
 //   sort=newest|soonest|distance
 // Each posting gets distanceKm when both ends have coordinates, and, for a
 // signed-in food bank, fitProblems (empty when it suits their profile).
+// Postings matching `filter`, as [{ posting, meters }]. With an origin, the
+// database works out distances using the location index ($geoNear), nearest
+// first, and applies the radius itself. Without a radius, postings that have
+// no map position are still listed, after the others and without a distance.
+const findPostings = async (filter, origin, radiusKm) => {
+  if (!origin) {
+    const postings = await mongoFoodPostings.find(filter).sort({ createdAt: -1 });
+    return postings.map((posting) => ({ posting }));
+  }
+  const near = await mongoFoodPostings.aggregate([
+    {
+      $geoNear: {
+        near: { type: "Point", coordinates: origin.coordinates },
+        distanceField: "_meters",
+        spherical: true,
+        query: filter,
+        ...(radiusKm > 0 ? { maxDistance: radiusKm * 1000 } : {}),
+      },
+    },
+  ]);
+  const found = near.map(({ _meters, ...doc }) => ({ posting: mongoFoodPostings.hydrate(doc), meters: _meters }));
+  if (radiusKm > 0) return found;
+  const unplaced = await mongoFoodPostings
+    .find({ $and: [filter, { "location.coordinates.1": { $exists: false } }] })
+    .sort({ createdAt: -1 });
+  return [...found, ...unplaced.map((posting) => ({ posting }))];
+};
+
 const getPostings = async (req, res) => {
   await refreshPostings();
   const query = req.query || {};
@@ -279,26 +302,21 @@ const getPostings = async (req, res) => {
   const origin = searchOrigin(query, profile);
   const radiusKm = Number(query.radiusKm);
 
-  const postings = await mongoFoodPostings.find(searchFilter(query)).sort({ createdAt: -1 });
-  let results = postings.map((p) => {
-    const json = p.toJSON();
-    if (origin && p.location && p.location.coordinates && p.location.coordinates.length === 2) {
-      json.distanceKm = Math.round(distanceKm(origin.coordinates, p.location.coordinates) * 10) / 10;
-    }
-    if (profile && profile.isFoodbank) json.fitProblems = fitProblems(p, profile);
+  let results = (await findPostings(searchFilter(query), origin, radiusKm)).map(({ posting, meters }) => {
+    const json = posting.toJSON();
+    if (meters !== undefined) json.distanceKm = Math.round(meters / 100) / 10;
+    if (profile && profile.isFoodbank) json.fitProblems = fitProblems(posting, profile);
     return json;
   });
 
-  if (origin && radiusKm > 0) {
-    results = results.filter((p) => p.distanceKm !== undefined && p.distanceKm <= radiusKm);
-  }
   if (query.fitsMe === "1" && profile && profile.isFoodbank) {
     results = results.filter((p) => p.fitProblems.length === 0);
   }
-  if (query.sort === "distance") {
-    results.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
-  } else if (query.sort === "soonest") {
+  // "distance" keeps the database's nearest-first order (unplaced postings last).
+  if (query.sort === "soonest") {
     results.sort((a, b) => new Date(a.pickupEndsAt || 8.64e15) - new Date(b.pickupEndsAt || 8.64e15));
+  } else if (query.sort !== "distance") {
+    results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 
   res.set("X-Search-Origin", origin ? origin.source : "none");
@@ -447,7 +465,7 @@ const editPosting = async (req, res) => {
 
 const getPhoto = async (req, res) => {
   if (!isValidId(req.params.id)) return notFound(res);
-  const photo = await mongoPostingPhotos.findOne({ postingId: req.params.id });
+  const photo = await photos.load(photos.postingKey(req.params.id));
   if (!photo) return res.status(404).json({ msg: "No photo." });
   res.set("Content-Type", photo.contentType);
   // Clients add ?v=<updatedAt>, so a cached copy is replaced when the photo changes.

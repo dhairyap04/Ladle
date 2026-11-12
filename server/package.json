@@ -7,12 +7,14 @@
     "start": "node index.js",
     "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
     "demo": "node scripts/demo.js",
-    "vapid": "node scripts/vapid.js"
+    "vapid": "node scripts/vapid.js",
+    "photos:move": "node scripts/move-photos.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1167.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
