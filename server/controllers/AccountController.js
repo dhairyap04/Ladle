@@ -11,6 +11,7 @@ const mongoRatings = require("../models/Ratings");
 const mongoReliabilityEvents = require("../models/ReliabilityEvents");
 const mongoPasswordResets = require("../models/PasswordResets");
 const mongoPushSubscriptions = require("../models/PushSubscriptions");
+const mongoDeliveryPhotos = require("../models/DeliveryPhotos");
 const { clearAuthCookies } = require("./authHelper");
 const { publicUser } = require("./UserController");
 const reliability = require("../reliability");
@@ -81,7 +82,10 @@ const deleteAccount = async (req, res) => {
   await mongoPostingPhotos.deleteMany({ postingId: { $in: mine.map((p) => p._id) } });
   await mongoFoodPostings.updateMany({ donorId: id }, { $set: { fromRestaurantName: FORMER, hasPhoto: false, notes: "" } });
   await mongoFoodPostings.updateMany({ claimedBy: id }, { $set: { claimedByName: FORMER } });
-  await mongoDeliveries.updateMany({ driverId: id }, { $set: { driverName: FORMER } });
+  // Handoff photos the driver took go with their account.
+  const driven = await mongoDeliveries.find({ driverId: id }, "_id");
+  await mongoDeliveryPhotos.deleteMany({ deliveryId: { $in: driven.map((d) => d._id) } });
+  await mongoDeliveries.updateMany({ driverId: id }, { $set: { driverName: FORMER, "pickupProof.hasPhoto": false, "dropoffProof.hasPhoto": false } });
   await mongoDeliveries.updateMany({ foodBankId: id }, { $set: { foodBankName: FORMER } });
   await mongoDeliveries.updateMany({ donorId: id }, { $set: { restaurantName: FORMER } });
   await mongoDeliveries.updateMany({ foodBankId: id, status: "requested" }, { $set: { status: "cancelled" } });

@@ -52,6 +52,7 @@ export const PrivacyPage = () => (
       <><strong>Food bank details</strong>: charitable registration number, what food you can accept, storage, capacity, receiving days and travel radius. Used to verify food banks and to show and alert you about suitable food.</>,
       <><strong>Volunteer driver details</strong>: vehicle type, how much you can carry, whether you have a cooler, availability, travel radius and a home area. Your home area is only used to find deliveries near you and is never shown to others.</>,
       <><strong>Postings and deliveries</strong>: pickup address, times, food description, allergens, storage and photos you add, and who claimed, collected and delivered them.</>,
+      <><strong>Delivery handoffs</strong>: when a volunteer driver collects or drops off food, how it was confirmed (a handoff code or a photo), any photo they take of the food, and whether they were near the address. To check that, your device&apos;s location is sent at that moment if you allow it; we keep only &quot;near&quot;, &quot;far&quot; (with the distance) or &quot;not shared&quot;, never your coordinates. Problems that food banks or restaurants report about a delivery are also kept.</>,
       <><strong>Messages</strong> you send about postings and deliveries, and <strong>ratings</strong> you give and receive.</>,
       <><strong>Reliability history</strong>: completed, missed and released pickups or deliveries, used to show your track record to the people deciding whether to work with you.</>,
       <><strong>Notifications</strong> we send you, and, if you turn them on, a <strong>push notification address</strong> for your device.</>,
@@ -63,6 +64,7 @@ export const PrivacyPage = () => (
       "Anyone can see open postings: restaurant name, pickup address and times, food details and photos.",
       "Once food is claimed or a driver accepts a delivery, the restaurant, food bank and driver involved can see each other's name and phone number.",
       "Signed-in users can see a food bank's or driver's track record and ratings.",
+      "Handoff codes are only shown to the restaurant or food bank that gives them out. Handoff photos and how each handoff was confirmed are visible to the restaurant, food bank and driver on that delivery, and to Ladle admins.",
       "Ladle admins can see account details to verify food banks and review reliability flags.",
       "We don't sell your information or use it for advertising.",
     ]} />
@@ -85,6 +87,7 @@ export const PrivacyPage = () => (
       "Notifications: 90 days.",
       "Password reset links: one hour.",
       "Reliability history: only the last 6 months count towards your track record. The history itself is deleted with your account.",
+      "Handoff photos: until the driver who took them deletes their account.",
       "Completed pickups stay in the other organization's records after you delete your account, with your name replaced by \"Former Ladle member\".",
     ]} />
 
@@ -128,6 +131,7 @@ export const TermsPage = () => (
       "Only claim or accept what you can collect during the pickup window. If you can't make it, release it as early as you can.",
       "Check food when you collect it, and don't accept or distribute anything that looks unsafe.",
       "Keep chilled, frozen and hot food at a safe temperature while you transport it.",
+      "Drivers: only mark food collected or delivered when it really is, and don't ask for a handoff code before you have the food or are at the food bank. Restaurants and food banks: only give the code to the driver in person.",
       "Drivers are volunteers, not employees or contractors of Ladle. Drive safely and follow the law.",
     ]} />
 

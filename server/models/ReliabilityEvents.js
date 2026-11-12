@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 //   no_show / delivery_missed             - committed and didn't turn up
 //   late_release / delivery_late_release  - backed out close to the pickup window
 //   release / delivery_release            - backed out with plenty of notice (neutral)
+//   delivery_disputed                     - the food bank reported the food never arrived (like a no-show)
 const EVENT_TYPES = [
   "pickup_completed",
   "no_show",
@@ -14,6 +15,7 @@ const EVENT_TYPES = [
   "delivery_missed",
   "delivery_late_release",
   "delivery_release",
+  "delivery_disputed",
 ];
 
 const ReliabilityEventsSchema = new mongoose.Schema(

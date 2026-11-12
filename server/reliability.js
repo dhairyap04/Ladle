@@ -37,7 +37,7 @@ async function summaries(userIds) {
   for (const { _id, n } of events) {
     const s = out[String(_id.user)];
     if (["pickup_completed", "delivery_completed"].includes(_id.type)) s.completed += n;
-    if (["no_show", "delivery_missed"].includes(_id.type)) s.noShows += n;
+    if (["no_show", "delivery_missed", "delivery_disputed"].includes(_id.type)) s.noShows += n;
     if (["late_release", "delivery_late_release"].includes(_id.type)) s.lateReleases += n;
     if (["release", "delivery_release"].includes(_id.type)) s.releases += n;
   }

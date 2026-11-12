@@ -13,6 +13,9 @@ deliveryRouter.post("/:id/accept", requireDriver, asyncHandler(d.acceptDelivery)
 deliveryRouter.post("/:id/release", requireDriver, asyncHandler(d.releaseDelivery));
 deliveryRouter.post("/:id/picked-up", requireDriver, asyncHandler(d.markCollected));
 deliveryRouter.post("/:id/delivered", requireDriver, asyncHandler(d.markDelivered));
+deliveryRouter.post("/:id/confirm", requireFoodbank, asyncHandler(d.confirmReceipt));
+deliveryRouter.post("/:id/report", asyncHandler(d.reportProblem));
+deliveryRouter.get("/:id/photo/:stage", asyncHandler(d.getHandoffPhoto));
 deliveryRouter.post("/:id/cancel", requireFoodbank, asyncHandler(d.cancelDelivery));
 deliveryRouter.get("/:id/messages", asyncHandler(d.listDeliveryMessages));
 deliveryRouter.post("/:id/messages", asyncHandler(d.sendDeliveryMessage));

@@ -4,6 +4,23 @@ const mongoFoodPostings = require("../models/Postings");
 const { notify } = require("../notify");
 const { publicUser } = require("./UserController");
 const reliability = require("../reliability");
+const mongoDeliveries = require("../models/Deliveries");
+const handoff = require("../handoff");
+
+const REVIEW_DAYS = 30;
+// Deliveries an admin should look at: open disputes, and recent ones whose
+// location or timing looked wrong.
+const reviewFilter = () => ({
+  $or: [
+    { "dispute.at": { $exists: true }, "dispute.resolution": { $exists: false } },
+    {
+      "flags.0": { $exists: true },
+      flagsReviewedAt: { $exists: false },
+      "dispute.at": { $exists: false },
+      updatedAt: { $gte: new Date(Date.now() - REVIEW_DAYS * 864e5) },
+    },
+  ],
+});
 
 const adminView = (user) => ({
   ...publicUser(user),
@@ -31,6 +48,7 @@ const getOverview = async (req, res) => {
     verification: toMap(byVerification),
     postings: toMap(byStatus),
     kgRescued: Math.round(((completed[0] && completed[0].kg) || 0) * 10) / 10,
+    deliveriesToReview: await mongoDeliveries.countDocuments(reviewFilter()),
     flagged: Object.values(await reliability.summaries((await mongoUsers.find({ role: { $ne: "restaurant" } }, "_id")).map((u) => u._id))).filter((s) => s.flagged).length,
   });
 };
@@ -82,4 +100,71 @@ const decideVerification = async (req, res) => {
   return res.status(200).json(adminView(user));
 };
 
-module.exports = { getOverview, listUsers, decideVerification };
+// GET /admin/deliveries — disputed or flagged deliveries, oldest first.
+const listDeliveries = async (req, res) => {
+  const deliveries = await mongoDeliveries.find(reviewFilter()).sort({ updatedAt: 1 }).limit(100).lean();
+  const people = await mongoUsers.find(
+    { _id: { $in: deliveries.flatMap((d) => [d.driverId, d.dispute && d.dispute.byUserId]).filter(Boolean) } },
+    "name email phoneNumber"
+  );
+  const byId = Object.fromEntries(people.map((p) => [String(p._id), { name: p.name, email: p.email, phoneNumber: p.phoneNumber || "" }]));
+  const summaries = await reliability.summaries(deliveries.map((d) => d.driverId).filter(Boolean));
+  return res.status(200).json(
+    deliveries.map((d) => ({
+      ...d,
+      driver: byId[String(d.driverId)] || null,
+      driverReliability: summaries[String(d.driverId)] || null,
+      reportedBy: d.dispute && d.dispute.byUserId ? byId[String(d.dispute.byUserId)] || null : null,
+    }))
+  );
+};
+
+// POST /admin/deliveries/:id/resolve { outcome: "delivered" | "not_delivered", note }
+const resolveDelivery = async (req, res) => {
+  const { outcome } = req.body || {};
+  const note = typeof req.body.note === "string" ? req.body.note.trim().slice(0, 500) : "";
+  if (!["delivered", "not_delivered"].includes(outcome)) {
+    return res.status(400).json({ msg: "Choose delivered or not delivered." });
+  }
+  const delivery = mongoose.Types.ObjectId.isValid(req.params.id) ? await mongoDeliveries.findById(req.params.id) : null;
+  if (!delivery || !delivery.driverId) return res.status(404).json({ msg: "Delivery not found." });
+  const now = new Date();
+  const openDispute = delivery.dispute && delivery.dispute.at && !delivery.dispute.resolution;
+
+  if (outcome === "delivered") {
+    if (delivery.status === "picked_up") {
+      delivery.status = "delivered";
+      delivery.deliveredAt = now;
+    }
+    if (openDispute || delivery.receipt !== "confirmed") {
+      delivery.receipt = "confirmed";
+      delivery.receiptConfirmedBy = "admin";
+      delivery.receiptAt = now;
+    }
+  } else {
+    delivery.receipt = "disputed";
+    if (!openDispute) delivery.dispute = { stage: "dropoff", byUserId: req.user.id, note: note || "Reviewed by a Ladle admin", at: now };
+  }
+  if (delivery.dispute && delivery.dispute.at) {
+    delivery.dispute.resolution = outcome;
+    delivery.dispute.resolvedAt = now;
+  }
+  delivery.flagsReviewedAt = now;
+  await delivery.save();
+  if (delivery.status === "delivered" || outcome === "not_delivered") {
+    await handoff.setDriverCredit(delivery, outcome === "delivered" ? "completed" : "disputed");
+  }
+
+  const result = outcome === "delivered" ? "counted as delivered" : "counted as not delivered";
+  const parties = [delivery.driverId, openDispute ? delivery.dispute.byUserId : null].filter(Boolean);
+  await notify(parties, {
+    type: "delivery",
+    title: `Ladle reviewed the delivery from ${delivery.restaurantName}`,
+    body: `It's been ${result}.${note ? ` ${note}` : ""}`,
+    link: `/view_post/${delivery.postingId}`,
+    postingId: delivery.postingId,
+  });
+  return res.status(200).json(delivery);
+};
+
+module.exports = { getOverview, listUsers, decideVerification, listDeliveries, resolveDelivery };

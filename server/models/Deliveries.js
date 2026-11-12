@@ -7,6 +7,23 @@ const { STORAGE } = require("../constants");
 const DELIVERY_STATUSES = ["requested", "accepted", "picked_up", "delivered", "cancelled", "expired", "missed"];
 const ACTIVE = ["requested", "accepted", "picked_up"];
 
+// How the food bank's receipt of a delivery was established:
+//   confirmed - the driver entered the food bank's code, or the food bank confirmed it
+//   pending   - the driver marked it delivered without the code; waiting on the food bank
+//   assumed   - nobody answered within RECEIPT_ASSUME_HOURS, so it counts as delivered
+//   disputed  - the food bank (or restaurant, for pickup) reported a problem
+const RECEIPT_STATUSES = ["pending", "confirmed", "assumed", "disputed"];
+
+// Evidence recorded when the driver collects or drops off the food. Only the
+// result of the location check is kept, never the driver's coordinates.
+const proof = {
+  at: { type: Date },
+  method: { type: String, enum: ["code", "photo"] },
+  location: { type: String, enum: ["near", "far", "unknown"] },
+  distanceM: { type: Number },
+  hasPhoto: { type: Boolean, default: false },
+};
+
 const point = {
   type: { type: String, enum: ["Point"] },
   coordinates: { type: [Number] },
@@ -42,6 +59,31 @@ const DeliveriesSchema = new mongoose.Schema(
     acceptedAt: { type: Date },
     pickedUpAt: { type: Date },
     deliveredAt: { type: Date },
+
+    // Handoff codes: the restaurant gives the driver pickupCode, the food bank
+    // gives dropoffCode. Never sent to the driver.
+    pickupCode: { type: String, select: false },
+    dropoffCode: { type: String, select: false },
+    pickupCodeTries: { type: Number, default: 0, select: false },
+    dropoffCodeTries: { type: Number, default: 0, select: false },
+    pickupProof: proof,
+    dropoffProof: proof,
+    // Things an admin may want to look at: pickup_far, dropoff_far, too_fast.
+    flags: { type: [String], default: undefined },
+    flagsReviewedAt: { type: Date },
+
+    receipt: { type: String, enum: RECEIPT_STATUSES, index: true },
+    receiptConfirmedBy: { type: String, enum: ["code", "foodbank", "admin"] },
+    receiptAt: { type: Date },
+    receiptReminderAt: { type: Date },
+    dispute: {
+      stage: { type: String, enum: ["pickup", "dropoff"] },
+      byUserId: { type: mongoose.Schema.Types.ObjectId, ref: "Users" },
+      note: { type: String },
+      at: { type: Date },
+      resolution: { type: String, enum: ["delivered", "not_delivered"] },
+      resolvedAt: { type: Date },
+    },
   },
   { timestamps: true }
 );
@@ -54,4 +96,5 @@ DeliveriesSchema.index(
 
 const mongoDeliveries = mongoose.model("Deliveries", DeliveriesSchema, "Deliveries");
 mongoDeliveries.ACTIVE = ACTIVE;
+mongoDeliveries.RECEIPT_STATUSES = RECEIPT_STATUSES;
 module.exports = mongoDeliveries;
