@@ -80,6 +80,8 @@ async function generateRecurringPostings({ now = new Date(), onCreated = async (
           donorId: schedule.donorId,
           fromRestaurantName: nameById[String(schedule.donorId)] || "Restaurant",
           fromRestaurantAddress: schedule.fromRestaurantAddress,
+          pickupLocationName: schedule.pickupLocationName || undefined,
+          pickupNotes: schedule.pickupNotes || undefined,
           location: schedule.location && schedule.location.coordinates && schedule.location.coordinates.length ? schedule.location : undefined,
           pickupDate: day,
           pickupTimeBegin: schedule.pickupTimeBegin,

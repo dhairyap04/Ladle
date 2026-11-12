@@ -3,13 +3,13 @@ const mongoRecurringSchedules = require("../models/RecurringSchedules");
 const { parseFoodDetails, parsePickupTime, refreshPostings } = require("./PostingsController");
 const { geocodeToPoint } = require("../geocode");
 const { isValidTimeZone } = require("../recurring");
+const mongoUsers = require("../models/Users");
+const { resolvePickup } = require("../locations");
 
 // Validates a schedule from the request body. Returns { values } or { error }.
+// The pickup address is worked out separately (see pickupFor).
 const parseSchedule = (body = {}) => {
-  const { fromRestaurantAddress, startsOn, endsOn, timeZone } = body;
-  if (typeof fromRestaurantAddress !== "string" || !fromRestaurantAddress.trim()) {
-    return { error: "Please enter the pickup address." };
-  }
+  const { startsOn, endsOn, timeZone } = body;
   const daysOfWeek = Array.isArray(body.daysOfWeek)
     ? [...new Set(body.daysOfWeek.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort()
     : [];
@@ -35,7 +35,6 @@ const parseSchedule = (body = {}) => {
   return {
     values: {
       ...foodValues,
-      fromRestaurantAddress: fromRestaurantAddress.trim(),
       daysOfWeek,
       pickupTimeBegin,
       pickupTimeEnd,
@@ -58,13 +57,30 @@ const loadOwn = async (req, res) => {
   return schedule;
 };
 
+// Where a schedule's pickups happen: a saved location it then follows, or a
+// typed address. Returns the fields to store, or sends a 400 and returns null.
+const pickupFor = async (req, res) => {
+  const donor = await mongoUsers.findById(req.user.id);
+  const pickup = await resolvePickup(donor, req.body);
+  if (pickup.error) {
+    res.status(400).json({ msg: pickup.error });
+    return null;
+  }
+  if (pickup.userChanged) await donor.save();
+  const fields = { pickupLocationName: undefined, pickupNotes: undefined, location: undefined, ...pickup.fields, locationId: pickup.locationId };
+  if (!fields.location) fields.location = await geocodeToPoint(fields.fromRestaurantAddress);
+  return fields;
+};
+
 const createSchedule = async (req, res) => {
   const { values, error } = parseSchedule(req.body);
   if (error) return res.status(400).json({ msg: error });
+  const pickup = await pickupFor(req, res);
+  if (!pickup) return undefined;
   const schedule = await mongoRecurringSchedules.create({
     ...values,
+    ...pickup,
     donorId: req.user.id,
-    location: await geocodeToPoint(values.fromRestaurantAddress),
   });
   await refreshPostings(); // create today's/tomorrow's posting right away
   return res.status(201).json(schedule);
@@ -81,9 +97,9 @@ const editSchedule = async (req, res) => {
   if (!schedule) return undefined;
   const { values, error } = parseSchedule(req.body);
   if (error) return res.status(400).json({ msg: error });
-  const addressChanged = values.fromRestaurantAddress !== schedule.fromRestaurantAddress;
-  schedule.set(values);
-  if (addressChanged) schedule.location = await geocodeToPoint(values.fromRestaurantAddress);
+  const pickup = await pickupFor(req, res);
+  if (!pickup) return undefined;
+  schedule.set({ ...values, ...pickup });
   await schedule.save();
   await refreshPostings();
   return res.status(200).json(schedule);

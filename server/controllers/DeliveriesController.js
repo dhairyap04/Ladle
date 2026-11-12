@@ -122,6 +122,8 @@ const requestDelivery = async (req, res) => {
       donorId: posting.donorId,
       restaurantName: posting.fromRestaurantName,
       pickupAddress: posting.fromRestaurantAddress,
+      pickupLocationName: posting.pickupLocationName || undefined,
+      pickupNotes: posting.pickupNotes || undefined,
       pickupLocation: hasPoint(posting.location) ? posting.location : undefined,
       dropoffAddress: foodBank.address,
       dropoffLocation: hasPoint(foodBank.location) ? foodBank.location : undefined,

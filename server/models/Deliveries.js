@@ -41,6 +41,8 @@ const DeliveriesSchema = new mongoose.Schema(
     restaurantName: { type: String, required: true },
 
     pickupAddress: { type: String, required: true },
+    pickupLocationName: { type: String }, // e.g. "Jasper Ave", for a restaurant with several
+    pickupNotes: { type: String }, // the restaurant's directions for drivers
     pickupLocation: point,
     dropoffAddress: { type: String, required: true },
     dropoffLocation: point,
