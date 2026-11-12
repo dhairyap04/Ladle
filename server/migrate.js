@@ -1,6 +1,7 @@
 const mongoUsers = require("./models/Users");
 const mongoFoodPostings = require("./models/Postings");
 const mongoPostingPhotos = require("./models/PostingPhotos");
+const mongoDeliveryPhotos = require("./models/DeliveryPhotos");
 const mongoNotifications = require("./models/Notifications");
 const mongoMessages = require("./models/Messages");
 const mongoRecurringSchedules = require("./models/RecurringSchedules");
@@ -29,6 +30,7 @@ const migrate = async () => {
   await mongoUsers.syncIndexes();
   await mongoFoodPostings.syncIndexes();
   await mongoPostingPhotos.syncIndexes();
+  await mongoDeliveryPhotos.syncIndexes();
   await mongoNotifications.syncIndexes();
   await mongoMessages.syncIndexes();
   await mongoRecurringSchedules.syncIndexes();
