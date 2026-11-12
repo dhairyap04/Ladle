@@ -16,6 +16,7 @@ In the United States, an estimated **30 to 40 percent** of the food supply is wa
 
 **For restaurants**
 - Post surplus food in about a minute: food types, quantity and weight, storage (room temperature, fridge, freezer, hot), when it was prepared, allergens and a photo.
+- Save **pickup locations** once, with directions for drivers ("back door off the alley"). With one location it's filled in on every post; a chain with several branches picks one, and a one-off address (say, a catering event) still works.
 - Set up **weekly donations** (for example, bread every weeknight at 9 PM); Ladle posts them automatically.
 - Get notified when a food bank claims and picks up your food, and **message** the food bank about pickup details.
 - See your **impact**: donations, kilograms rescued and estimated meals, month by month. Download your records as CSV or print a **donation record** for each pickup.

@@ -61,7 +61,11 @@ async function seed(app) {
 
   const restaurant = as();
   await signUp(restaurant, "Harvest Table Bistro", "restaurant@demo.ladle", "restaurant");
-  await expectOk(restaurant.post("/user/update").send({ address: "10150 Jasper Ave, Edmonton, AB", phoneNumber: "780-555-0142", website: "harvesttable.example", openHours: "11:00-22:00" }), "restaurant profile");
+  const profile = await expectOk(restaurant.post("/user/update").send({ address: "10150 Jasper Ave, Edmonton, AB", phoneNumber: "780-555-0142", website: "harvesttable.example", openHours: "11:00-22:00" }), "restaurant profile");
+  // Two branches: the profile address became the first (main) location.
+  const jasper = profile.user.locations[0].id;
+  await expectOk(restaurant.patch(`/user/locations/${jasper}`).send({ name: "Jasper Ave", notes: "Back door off the alley. Ask for Maria." }), "name main location");
+  const { locationId: university } = await expectOk(restaurant.post("/user/locations").send({ name: "University", address: "8215 112 St NW, Edmonton, AB", notes: "Loading bay on 82 Ave." }), "second location");
 
   const cafe = as();
   await signUp(cafe, "Sunrise Café", "cafe@demo.ladle", "restaurant");
@@ -89,7 +93,7 @@ async function seed(app) {
 
   // Open postings for food banks to browse.
   await post(restaurant, {
-    fromRestaurantAddress: "8215 112 St NW, Edmonton, AB",
+    locationId: university,
     ...windowOn(tomorrow, "20:00", "21:30"),
     foodTypes: ["prepared_meals"], allergens: ["none"], storage: "refrigerated",
     quantity: "20 boxed dinners", estimatedWeightKg: 12, notes: "Chicken and rice, packed this evening.",
@@ -108,7 +112,7 @@ async function seed(app) {
 
   // Claimed by the food bank, with a driver on the way.
   const bread = await post(restaurant, {
-    fromRestaurantAddress: "10150 Jasper Ave, Edmonton, AB",
+    locationId: jasper,
     ...windowOn(tomorrow, "16:00", "18:00"),
     foodTypes: ["bakery"], allergens: ["wheat", "milk"], quantity: "3 trays of bread", estimatedWeightKg: 8,
     notes: "Ask at the back door.",
@@ -131,7 +135,7 @@ async function seed(app) {
 
   // A completed, rated pickup (shows on impact pages and the donation record).
   const salad = await post(restaurant, {
-    fromRestaurantAddress: "10150 Jasper Ave, Edmonton, AB",
+    locationId: jasper,
     ...windowOn(tomorrow, "12:00", "14:00"),
     foodTypes: ["produce", "prepared_meals"], allergens: ["none"], quantity: "Salad bar leftovers", estimatedWeightKg: 9,
   }, "salad posting");
@@ -144,7 +148,7 @@ async function seed(app) {
 
   // A weekly donation.
   await expectOk(restaurant.post("/schedule").send({
-    fromRestaurantAddress: "10150 Jasper Ave, Edmonton, AB",
+    locationId: jasper,
     daysOfWeek: [1, 3, 5], pickupTimeBegin: "21:00", pickupTimeEnd: "22:00", startsOn: daysFromNow(0),
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     foodTypes: ["bakery"], allergens: ["wheat"], quantity: "Day-old bread", estimatedWeightKg: 5,

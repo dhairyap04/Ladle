@@ -26,8 +26,9 @@ test("a restaurant posts surplus food", async ({ page }) => {
   await dialog.getByRole("button", { name: "Bread & bakery" }).click();
   await dialog.getByLabel("Quantity").fill("E2E test croissants");
   await dialog.getByRole("button", { name: "None of these" }).click();
-  await dialog.getByLabel("Street address").fill("10150 Jasper Ave");
-  await dialog.getByLabel("City").fill("Edmonton");
+  // Harvest Table has two branches: pick one instead of typing the address.
+  await dialog.getByRole("radio", { name: /^University/ }).click();
+  await expect(dialog.getByRole("radio", { name: /^University/ })).toHaveAttribute("aria-checked", "true");
   await dialog.getByLabel("From").fill("20:00");
   await dialog.getByLabel("Until").fill("23:00");
   // Tomorrow, so the window hasn't ended whatever time the tests run.
@@ -37,6 +38,19 @@ test("a restaurant posts surplus food", async ({ page }) => {
   await dialog.getByRole("button", { name: "Post it" }).click();
   await expect(dialog).toBeHidden();
   await expect(page.getByRole("heading", { name: "E2E test croissants" })).toBeVisible();
+  await expect(page.getByText("University · 8215 112 St NW").first()).toBeVisible();
+});
+
+test("a restaurant with one location has its address filled in", async ({ page }) => {
+  await logIn(page, "cafe");
+  await page.getByRole("button", { name: "Post surplus food" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("10418 82 Ave NW, Edmonton, AB")).toBeVisible();
+  await expect(dialog.getByLabel("Pickup address")).toHaveCount(0);
+  // "Change" offers a one-off address for, say, a catering event.
+  await dialog.getByRole("button", { name: "Change" }).click();
+  await dialog.getByRole("radio", { name: /^Somewhere else/ }).click();
+  await expect(dialog.getByLabel("Pickup address")).toBeVisible();
 });
 
 test("a food bank claims it", async ({ page }) => {
