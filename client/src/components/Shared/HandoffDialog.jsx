@@ -19,6 +19,7 @@ import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
 import LocationOffRoundedIcon from "@mui/icons-material/LocationOffRounded";
 import api, { errorMessage } from "../../api";
 import { resizePhoto } from "../../photo";
+import { enqueue, isNetworkError } from "../../outbox";
 
 const COPY = {
   pickup: {
@@ -63,8 +64,9 @@ function useLocationOnce(active) {
 }
 
 // The driver's step at the restaurant ("pickup") or the food bank ("dropoff"):
-// enter the other person's code, or add a photo.
-const HandoffDialog = ({ delivery, stage, open, onClose, onDone }) => {
+// enter the other person's code, or add a photo. With no signal the step is
+// saved on the phone and sent later (onQueued), instead of failing.
+const HandoffDialog = ({ delivery, stage, open, onClose, onDone, onQueued }) => {
   const copy = COPY[stage];
   const [code, setCode] = useState("");
   const [photo, setPhoto] = useState(null);
@@ -104,15 +106,24 @@ const HandoffDialog = ({ delivery, stage, open, onClose, onDone }) => {
     if (!ready) return;
     setBusy(true);
     setError("");
+    const body = { clientAt: new Date().toISOString() };
+    if (code.length === 4) body.code = code;
+    if (photo) body.photo = photo;
+    if (place.location) body.location = place.location;
+    const saveForLater = () => {
+      if (enqueue({ deliveryId: delivery._id, path: copy.path, body })) onQueued();
+      else setError("There's no signal, and this device couldn't save it for later. Try again when you're back online.");
+    };
     try {
-      const body = {};
-      if (code.length === 4) body.code = code;
-      if (photo) body.photo = photo;
-      if (place.location) body.location = place.location;
+      if (navigator.onLine === false) {
+        saveForLater();
+        return;
+      }
       const res = await api.post(`delivery/${delivery._id}/${copy.path}`, body);
       onDone(res.data);
     } catch (err) {
-      setError(errorMessage(err));
+      if (isNetworkError(err)) saveForLater();
+      else setError(errorMessage(err));
     } finally {
       setBusy(false);
     }

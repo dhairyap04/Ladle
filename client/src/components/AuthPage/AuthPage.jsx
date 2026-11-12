@@ -5,7 +5,9 @@ import {
     Box,
     Button,
     ButtonBase,
+    Checkbox,
     Container,
+    FormControlLabel,
     Link,
     Paper,
     TextField,
@@ -92,7 +94,7 @@ function AuthForm({ history, initialLogin, initialRole }) {
         setSubmitting(true);
         try {
             if (isLogin) {
-                await api.post("user/login", { email, password });
+                await api.post("user/login", { email, password, remember: data.get('remember') === "on" });
                 history.push("/main");
             } else {
                 await api.post("user/create", { email, password, name, role });
@@ -168,7 +170,11 @@ function AuthForm({ history, initialLogin, initialRole }) {
                     helperText={isLogin ? undefined : "At least 8 characters"}
                 />
                 {isLogin && (
-                    <Box sx={{ textAlign: "right" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
+                        <FormControlLabel
+                            control={<Checkbox name="remember" defaultChecked />}
+                            label={<Typography variant="body2">Keep me signed in on this device</Typography>}
+                        />
                         <Link component={RouterLink} to="/forgot-password" variant="body2" sx={{ fontWeight: 600 }}>
                             Forgot your password?
                         </Link>

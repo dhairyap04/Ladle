@@ -3,6 +3,9 @@ const { accessTokenSecret, refreshTokenSecret, isProduction } = require("../conf
 
 const ACCESS_TOKEN_MS = 15 * 60 * 1000; // 15 minutes
 const REFRESH_TOKEN_MS = 200 * 24 * 60 * 60 * 1000; // 200 days
+// A remembered device gets a fresh refresh token at most this often while it's
+// in use, so a restaurant's iPad that's used every week never gets signed out.
+const ROLL_REFRESH_AFTER_MS = 24 * 60 * 60 * 1000;
 
 // Express's cookie maxAge is in milliseconds. In production the client and API
 // are on different sites, so cookies must be SameSite=None and Secure.
@@ -13,7 +16,9 @@ const cookieOptions = (maxAge) => ({
   sameSite: isProduction ? "none" : "lax",
 });
 
-const tokenPayload = (user) => ({
+// `remember` (rm): whether this sign-in should outlast the browser session.
+// Kept in the token so refreshed and re-issued cookies keep the same choice.
+const tokenPayload = (user, remember) => ({
   id: String(user._id || user.id),
   email: user.email,
   name: user.name,
@@ -22,17 +27,27 @@ const tokenPayload = (user) => ({
   isAdmin: Boolean(user.isAdmin),
   // Bumped when the password changes, so older refresh tokens stop working.
   sv: user.sessionVersion || user.sv || 0,
+  rm: remember === undefined ? user.rm !== false : Boolean(remember),
 });
 
-const generateAccessToken = (user) =>
-  jwt.sign(tokenPayload(user), accessTokenSecret, { expiresIn: ACCESS_TOKEN_MS / 1000 });
+const generateAccessToken = (user, remember) =>
+  jwt.sign(tokenPayload(user, remember), accessTokenSecret, { expiresIn: ACCESS_TOKEN_MS / 1000 });
 
-const generateRefreshToken = (user) =>
-  jwt.sign(tokenPayload(user), refreshTokenSecret, { expiresIn: REFRESH_TOKEN_MS / 1000 });
+const generateRefreshToken = (user, remember) =>
+  jwt.sign(tokenPayload(user, remember), refreshTokenSecret, { expiresIn: REFRESH_TOKEN_MS / 1000 });
 
-const setAuthCookies = (res, user) => {
-  res.cookie("accessToken", generateAccessToken(user), cookieOptions(ACCESS_TOKEN_MS));
-  res.cookie("refreshToken", generateRefreshToken(user), cookieOptions(REFRESH_TOKEN_MS));
+// Without `remember`, the refresh cookie has no expiry, so the browser drops
+// it when it closes (for shared or public computers).
+const setRefreshCookie = (res, user, remember) => {
+  const { maxAge, ...sessionOnly } = cookieOptions(REFRESH_TOKEN_MS);
+  res.cookie("refreshToken", generateRefreshToken(user, remember), remember ? cookieOptions(REFRESH_TOKEN_MS) : sessionOnly);
+};
+
+// `remember` defaults to the choice already in `user` (a token payload), or true.
+const setAuthCookies = (res, user, remember) => {
+  const rm = remember === undefined ? user.rm !== false : Boolean(remember);
+  res.cookie("accessToken", generateAccessToken(user, rm), cookieOptions(ACCESS_TOKEN_MS));
+  setRefreshCookie(res, user, rm);
 };
 
 const clearAuthCookies = (res) => {
@@ -69,6 +84,10 @@ const authenticate = async (req, res) => {
       return null;
     }
     res.cookie("accessToken", generateAccessToken(fromRefresh), cookieOptions(ACCESS_TOKEN_MS));
+    const issuedAt = (jwt.decode(refreshToken) || {}).iat;
+    if (fromRefresh.rm && issuedAt && Date.now() - issuedAt * 1000 > ROLL_REFRESH_AFTER_MS) {
+      setRefreshCookie(res, fromRefresh, true);
+    }
     return fromRefresh;
   }
   return null;

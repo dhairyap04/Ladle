@@ -77,6 +77,24 @@ test("the food bank confirms the delivery arrived", async ({ page }) => {
   await expect(page.getByText("Confirmed", { exact: true })).toBeVisible();
 });
 
+test("a driver with no signal records a pickup, sent when the signal returns", async ({ page, context }) => {
+  await logIn(page, "driver");
+  await expect(page.getByRole("link", { name: "Directions to restaurant" }).first()).toHaveAttribute("href", /google\.com\/maps\/dir/);
+  await context.setOffline(true);
+  const dialog = page.getByRole("dialog");
+  await page.getByRole("button", { name: "I've collected the food" }).first().click();
+  await dialog.locator("input[type=file]").setInputFiles(PHOTO);
+  await expect(dialog.getByRole("img", { name: "Photo of the food" })).toBeVisible();
+  await dialog.getByRole("button", { name: "I've collected the food" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText("Saved on this phone, waiting for signal")).toBeVisible();
+  await expect(page.getByText("On the way (not sent yet)")).toBeVisible();
+
+  await context.setOffline(false);
+  await expect(page.getByText("Saved on this phone, waiting for signal")).toBeHidden({ timeout: 15000 });
+  await expect(page.getByText("with a photo, no code").first()).toBeVisible();
+});
+
 test("an admin verifies the food bank", async ({ page }) => {
   await logIn(page, "admin");
   await page.goto("/admin");

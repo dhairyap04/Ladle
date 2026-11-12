@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
   Alert,
@@ -27,6 +27,9 @@ import { VEHICLES } from "../../roles";
 import ReliabilityBadge from "./ReliabilityBadge";
 import DeliveryChat from "./DeliveryChat";
 import HandoffDialog from "./HandoffDialog";
+import DirectionsButton from "./DirectionsButton";
+import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
+import { discard, flushOutbox, outboxFor, subscribeOutbox } from "../../outbox";
 import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 
@@ -153,9 +156,28 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, ti
   };
   const [reporting, setReporting] = useState(null); // "pickup" | "dropoff"
   const [reportNote, setReportNote] = useState("");
+  // Handoffs saved on this phone while there was no signal.
+  const [queued, setQueued] = useState(() => (viewer === "driver" ? outboxFor(delivery._id) : []));
+  useEffect(() => {
+    if (viewer !== "driver") return undefined;
+    setQueued(outboxFor(delivery._id));
+    return subscribeOutbox((items, sent) => {
+      setQueued(items.filter((i) => i.deliveryId === delivery._id));
+      if (sent && sent.deliveryId === delivery._id && onChanged) onChanged();
+    });
+  }, [viewer, delivery._id, onChanged]);
+  const waiting = queued.filter((i) => i.status === "waiting");
+  const failed = queued.find((i) => i.status === "failed");
+  // What the status will be once saved steps are sent, so the driver can carry on.
+  const effectiveStatus = waiting.some((i) => i.path === "delivered")
+    ? "delivered"
+    : waiting.some((i) => i.path === "picked-up") ? "picked_up" : delivery.status;
+  const status = effectiveStatus === delivery.status
+    ? DELIVERY_STATUS[delivery.status]
+    : { ...DELIVERY_STATUS[effectiveStatus], label: `${DELIVERY_STATUS[effectiveStatus].label} (not sent yet)` };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const status = DELIVERY_STATUS[delivery.status];
+
 
   const run = async () => {
     setBusy(true);
@@ -206,10 +228,10 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, ti
   const receipt = delivery.status === "delivered" || openDispute ? RECEIPT[delivery.receipt] : null;
 
   const actions = [];
-  if (viewer === "driver") {
-    if (delivery.status === "requested") actions.push("accept");
-    if (delivery.status === "accepted") actions.push("picked-up", "release");
-    if (delivery.status === "picked_up") actions.push("delivered");
+  if (viewer === "driver" && !failed) {
+    if (effectiveStatus === "requested") actions.push("accept");
+    if (effectiveStatus === "accepted") actions.push("picked-up", "release");
+    if (effectiveStatus === "picked_up") actions.push("delivered");
   }
   if (viewer === "foodbank" && ["requested", "accepted"].includes(delivery.status)) actions.push("cancel");
 
@@ -246,6 +268,14 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, ti
           <Typography variant="body2" sx={{ fontWeight: 700 }}>Pick up {formatPickupWindow(delivery)}</Typography>
         </Stack>
         {facts && <Typography variant="body2" color="text.secondary">{facts}</Typography>}
+        {viewer === "driver" && ["accepted", "picked_up"].includes(effectiveStatus) && (
+          <Stack direction="row" spacing={1} sx={{ pt: 0.5, flexWrap: "wrap", rowGap: 1 }}>
+            {effectiveStatus === "accepted" && (
+              <DirectionsButton address={delivery.pickupAddress} label="Directions to restaurant" variant="contained" color="secondary" />
+            )}
+            <DirectionsButton address={delivery.dropoffAddress} label="Directions to food bank" variant={effectiveStatus === "picked_up" ? "contained" : "outlined"} />
+          </Stack>
+        )}
         {delivery.notes && <Typography variant="body2" color="text.secondary">Note from the food bank: {delivery.notes}</Typography>}
       </Stack>
 
@@ -287,6 +317,32 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, ti
 
       {delivery.contacts && userId && <DeliveryChat deliveryId={delivery._id} userId={userId} />}
 
+      {waiting.length > 0 && (
+        <Alert severity="info" icon={<CloudUploadRoundedIcon />} sx={{ mt: 1.5 }} role="status">
+          <strong>Saved on this phone, waiting for signal:</strong>{" "}
+          {waiting.map((i) => (i.path === "picked-up" ? "collected" : "delivered")).join(" and ")}.
+          It&apos;s sent automatically when you&apos;re back online, with the time it happened. Keep Ladle open, or open it again later.
+          <Box sx={{ mt: 1 }}><Button size="small" onClick={flushOutbox}>Try sending now</Button></Box>
+        </Alert>
+      )}
+      {failed && (
+        <Alert severity="error" sx={{ mt: 1.5 }}>
+          <strong>Couldn&apos;t record that you {failed.path === "picked-up" ? "collected" : "delivered"} the food:</strong> {failed.error}
+          <Box sx={{ mt: 1 }}>
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => {
+                // Later steps saved for this delivery depended on this one.
+                queued.forEach((i) => discard(i.id));
+                startHandoff(failed.path === "picked-up" ? "pickup" : "dropoff");
+              }}
+            >
+              Try again
+            </Button>
+          </Box>
+        </Alert>
+      )}
       {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}
       {(delivery.canConfirm || delivery.canReportDropoff || delivery.canReportPickup) && (
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 2 }}>
@@ -326,6 +382,7 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, ti
           stage={handoffStage}
           open={handoffOpen}
           onClose={() => setHandoffOpen(false)}
+          onQueued={() => setHandoffOpen(false)}
           onDone={(data) => {
             setHandoffOpen(false);
             onChanged && onChanged(data);

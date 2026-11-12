@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
-import { Alert, BottomNavigation, BottomNavigationAction, Button, GlobalStyles, IconButton, Paper, Slide, Snackbar } from "@mui/material";
+import { Alert, BottomNavigation, BottomNavigationAction, GlobalStyles, IconButton, Paper, Slide, Snackbar } from "@mui/material";
 import CloudOffRoundedIcon from "@mui/icons-material/CloudOffRounded";
 import InstallMobileRoundedIcon from "@mui/icons-material/InstallMobileRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -8,7 +8,7 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
-import { canInstall, isStandalone, onInstallAvailable, promptInstall } from "../../pwa";
+import { useInstallMethod, InstallButton } from "./InstallGuide";
 import { HOME_LABELS, roleOf } from "../../roles";
 
 const DISMISS_KEY = "ladle.installDismissed";
@@ -36,17 +36,17 @@ export const OfflineBanner = () => {
   return (
     <Slide in={offline} direction="down" mountOnEnter unmountOnExit>
       <Alert severity="warning" icon={<CloudOffRoundedIcon />} sx={{ borderRadius: 0, justifyContent: "center" }} role="status">
-        You&apos;re offline. You can look around, but nothing can be posted or claimed until you reconnect.
+        You&apos;re offline. Drivers can still record a pickup or drop-off; it&apos;s sent when you reconnect. Posting and claiming need a connection.
       </Alert>
     </Slide>
   );
 };
 
-// Offers to install Ladle as an app, where the browser supports it.
+// Offers to install Ladle as an app: the browser's own prompt where there is
+// one, or the Share menu steps on iPhone and iPad.
 export const InstallPrompt = () => {
-  const [available, setAvailable] = useState(canInstall());
+  const method = useInstallMethod();
   const [dismissed, setDismissed] = useState(readDismissed);
-  useEffect(() => onInstallAvailable(setAvailable), []);
 
   const dismiss = () => {
     setDismissed(true);
@@ -59,7 +59,7 @@ export const InstallPrompt = () => {
 
   return (
     <Snackbar
-      open={available && !dismissed && !isStandalone()}
+      open={Boolean(method) && !dismissed}
       anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       sx={{ bottom: { xs: 80, sm: 24 } }}
     >
@@ -69,12 +69,12 @@ export const InstallPrompt = () => {
         sx={{ alignItems: "center", boxShadow: 3 }}
         action={
           <>
-            <Button color="inherit" size="small" onClick={() => promptInstall().then(dismiss)}>Install</Button>
+            <InstallButton color="inherit" size="small" onDone={dismiss} sx={{ whiteSpace: "nowrap" }}>{method === "ios" ? "Show me how" : "Install"}</InstallButton>
             <IconButton size="small" aria-label="Not now" color="inherit" onClick={dismiss}><CloseRoundedIcon fontSize="small" /></IconButton>
           </>
         }
       >
-        Install Ladle for quicker posting and pickups.
+        {method === "ios" ? "Add Ladle to your home screen to get notifications." : "Install Ladle for quicker posting and pickups."}
       </Alert>
     </Snackbar>
   );

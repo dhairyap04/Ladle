@@ -8,6 +8,24 @@ import api, { errorMessage } from "../../api";
 import usePageTitle from "../../usePageTitle";
 
 const ACTIVE = ["accepted", "picked_up"];
+const SAVED_KEY = "ladle.driverJobs";
+
+// The driver's jobs as last loaded, so they can still be opened (and a pickup
+// or drop-off recorded) with no signal.
+const saveJobs = (jobs) => {
+  try {
+    window.localStorage.setItem(SAVED_KEY, JSON.stringify({ at: new Date().toISOString(), jobs }));
+  } catch {
+    // Storage full or blocked: offline copy just isn't available.
+  }
+};
+const savedJobs = () => {
+  try {
+    return JSON.parse(window.localStorage.getItem(SAVED_KEY));
+  } catch {
+    return null;
+  }
+};
 
 const Empty = ({ children }) => (
   <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, borderStyle: "dashed", textAlign: "center", bgcolor: "transparent" }}>
@@ -24,15 +42,26 @@ const DriverHome = ({ user }) => {
   const [profile, setProfile] = useState(null);
   const [onlyFits, setOnlyFits] = useState(true);
   const [error, setError] = useState("");
+  const [offlineSince, setOfflineSince] = useState(null);
 
   const load = useCallback(async () => {
     try {
       const [a, m] = await Promise.all([api.get("delivery/available"), api.get("delivery/mine")]);
       setAvailable(a.data);
       setMine(m.data);
+      saveJobs(m.data.filter((d) => ACTIVE.includes(d.status)));
       setError("");
+      setOfflineSince(null);
     } catch (err) {
-      setError(errorMessage(err, "Couldn't load deliveries."));
+      const saved = !err.response && savedJobs();
+      if (saved) {
+        setMine((current) => (current.length ? current : saved.jobs));
+        setAvailable((current) => current || []);
+        setOfflineSince(saved.at);
+        setError("");
+      } else {
+        setError(errorMessage(err, "Couldn't load deliveries."));
+      }
     }
   }, []);
 
@@ -60,6 +89,12 @@ const DriverHome = ({ user }) => {
           </Alert>
         )}
         {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+        {offlineSince && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            No connection. Showing your deliveries as of{" "}
+            {new Date(offlineSince).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. You can still record a pickup or drop-off.
+          </Alert>
+        )}
 
         {active.length > 0 && (
           <Box component="section" sx={{ mb: 4 }}>

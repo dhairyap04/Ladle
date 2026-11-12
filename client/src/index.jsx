@@ -6,6 +6,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import App from "./App";
 import theme from "./theme";
 import { registerServiceWorker } from "./pwa";
+import { startOutbox } from "./outbox";
 
 const rootElement = document.getElementById("root");
 ReactDOM.render(
@@ -19,3 +20,4 @@ ReactDOM.render(
 );
 
 registerServiceWorker();
+startOutbox();

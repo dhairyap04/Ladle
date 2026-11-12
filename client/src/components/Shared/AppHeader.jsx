@@ -6,6 +6,8 @@ import NotificationBell from "./NotificationBell";
 import { BottomNav, InstallPrompt, OfflineBanner } from "./AppChrome";
 import { HOME_LABELS, roleOf } from "../../roles";
 import api from "../../api";
+import { forgetCachedUser } from "../../useAuthUser";
+import { clearOutbox, hasUnsent } from "../../outbox";
 
 // Top bar shared by every page. `user` is the signed-in user, null for a
 // guest, or undefined while the page is still checking.
@@ -13,6 +15,11 @@ const AppHeader = ({ user }) => {
   const history = useHistory();
 
   const logOut = async () => {
+    if (hasUnsent() && !window.confirm("A pickup or drop-off you recorded hasn't been sent yet. If you log out now it will be lost. Log out anyway?")) {
+      return;
+    }
+    clearOutbox();
+    forgetCachedUser();
     try {
       await api.post("user/logout");
     } finally {

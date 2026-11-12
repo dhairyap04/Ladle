@@ -5,6 +5,8 @@ import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 import api from "../../api";
 import { disablePush, enablePush, pushStatus } from "../../pushClient";
+import { isIos, isStandalone } from "../../pwa";
+import { InstallButton } from "./InstallGuide";
 
 const POLL_MS = 30000;
 
@@ -146,7 +148,18 @@ const NotificationBell = () => {
             </Box>
           </>
         )}
-        {!push.available && permission === "default" && (
+        {isIos() && !isStandalone() && (
+          <>
+            <Divider />
+            <Box sx={{ p: 1.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                To get notifications on this {/iPad|Macintosh/.test(navigator.userAgent) ? "iPad" : "iPhone"}, add Ladle to your home screen and open it from there.
+              </Typography>
+              <InstallButton fullWidth size="small" variant="outlined">Show me how</InstallButton>
+            </Box>
+          </>
+        )}
+        {!push.available && permission === "default" && !isIos() && (
           <>
             <Divider />
             <Box sx={{ p: 1.5 }}>

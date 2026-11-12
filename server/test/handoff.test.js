@@ -252,3 +252,26 @@ test("a released job gets new codes for the next driver", async () => {
   // Random 4-digit codes can collide by chance, so check both didn't stay the same.
   assert.ok(after.pickupCode !== before.pickupCode || after.dropoffCode !== before.dropoffCode);
 });
+
+test("a handoff saved offline keeps the time it happened, within reason", async () => {
+  const { postingId, id } = await acceptedJob();
+  const acceptedAt = (await Deliveries.findById(id)).acceptedAt;
+  // Saved 20 seconds before it was accepted? Clamped to the accept time.
+  const early = new Date(acceptedAt.getTime() - 20e3).toISOString();
+  const collected = await driver.post(`/delivery/${id}/picked-up`).send({ code: await codeFor(donor, postingId), clientAt: early });
+  assert.strictEqual(new Date(collected.body.pickedUpAt).getTime(), acceptedAt.getTime());
+
+  // Pretend the pickup was 40 minutes ago and the drop-off was saved 10 minutes ago.
+  const pickedUpAt = new Date(Date.now() - 40 * 60e3);
+  await Deliveries.updateOne({ _id: id }, { pickedUpAt, "pickupProof.at": pickedUpAt });
+  const savedAt = new Date(Date.now() - 10 * 60e3).toISOString();
+  const done = await driver.post(`/delivery/${id}/delivered`).send({ code: await codeFor(bank, postingId), clientAt: savedAt });
+  assert.strictEqual(done.body.deliveredAt, savedAt);
+  assert.strictEqual(done.body.dropoffProof.at, savedAt);
+
+  const { handoffTime } = require("../handoff");
+  const now = new Date();
+  assert.strictEqual(handoffTime(new Date(now.getTime() + 60e3).toISOString(), null, now), now, "future: now");
+  assert.strictEqual(handoffTime(new Date(now.getTime() - 13 * 3600e3).toISOString(), null, now), now, "too old: now");
+  assert.strictEqual(handoffTime("nonsense", null, now), now);
+});

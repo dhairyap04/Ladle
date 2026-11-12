@@ -131,7 +131,7 @@ const loginUser_handler = async (req, res) => {
 
   if (syncAdmin(user)) await user.save();
 
-  setAuthCookies(res, user);
+  setAuthCookies(res, user, (req.body || {}).remember !== false);
   return res.status(200).json({ user: publicUser(user) });
 };
 
@@ -219,7 +219,7 @@ const updateUser = async (req, res) => {
     if (!user) return res.status(404).json({ msg: "Account not found." });
 
     // Re-issue tokens so a changed name shows up on new postings right away.
-    setAuthCookies(res, user);
+    setAuthCookies(res, user, req.user.rm);
     return res.status(200).json({ user: publicUser(user) });
   } catch (err) {
     if (err.code === 11000) {
@@ -265,11 +265,24 @@ const logoutUser_handler = (req, res) => {
   res.status(200).json({ msg: "Logged out." });
 };
 
+// POST /user/logout-others — signs out every other device (for example a lost
+// phone or a shared tablet), keeping this one signed in. Other devices stop
+// working within one access-token lifetime (15 minutes).
+const logoutOthers_handler = async (req, res) => {
+  const user = await mongoUsers.findById(req.user.id);
+  if (!user) return res.status(404).json({ msg: "Account not found." });
+  user.sessionVersion = (user.sessionVersion || 0) + 1;
+  await user.save();
+  setAuthCookies(res, user, req.user.rm);
+  return res.status(200).json({ msg: "You've been signed out on your other devices." });
+};
+
 const isAuthUser_handler = (req, res) => {
   res.status(200).json(req.user);
 };
 
 module.exports = {
+  logoutOthers_handler,
   requestVerification,
   publicUser,
   CHARITY_NUMBER,
