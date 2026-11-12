@@ -71,7 +71,7 @@ const PostingTile = ({ postingData: posting, showStatus, foodTitle }) => {
               <PlaceRoundedIcon sx={{ fontSize: 18 }} />
               <Typography variant="body2" noWrap>
                 {posting.distanceKm !== undefined && <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>{posting.distanceKm} km · </Box>}
-                {posting.fromRestaurantAddress}
+                {posting.pickupLocationName ? `${posting.pickupLocationName} · ${posting.fromRestaurantAddress}` : posting.fromRestaurantAddress}
               </Typography>
             </Stack>
             {summary && (

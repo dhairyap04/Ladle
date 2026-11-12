@@ -18,6 +18,14 @@ const migrate = async () => {
   // Accounts from before the role field: derive it from isFoodbank.
   await mongoUsers.updateMany({ role: { $exists: false }, isFoodbank: true }, { $set: { role: "foodbank" } });
   await mongoUsers.updateMany({ role: { $exists: false }, isFoodbank: { $ne: true } }, { $set: { role: "restaurant" } });
+  // Restaurants from before saved locations: their address becomes the first one.
+  const { nameFromAddress } = require("./locations");
+  const needLocations = await mongoUsers.find({ role: "restaurant", address: { $nin: [null, ""] }, "locations.0": { $exists: false } });
+  for (const user of needLocations) {
+    user.locations = [{ name: nameFromAddress(user.address), address: user.address, location: user.location && user.location.coordinates && user.location.coordinates.length ? user.location : undefined }];
+    user.defaultLocationId = user.locations[0]._id;
+    await user.save();
+  }
   await mongoUsers.syncIndexes();
   await mongoFoodPostings.syncIndexes();
   await mongoPostingPhotos.syncIndexes();

@@ -1,6 +1,22 @@
 const mongoose = require("mongoose");
 const { FOOD_TYPES, ROLES, VEHICLES } = require("../constants");
 
+// A place a restaurant hands food over from, e.g. one branch of a chain.
+// Postings copy these details when created, so editing or deleting a location
+// never changes where past pickups happened.
+const PickupLocationSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true, maxlength: 60 }, // "Jasper Ave"
+    address: { type: String, required: true, trim: true, maxlength: 200 },
+    notes: { type: String, trim: true, maxlength: 300, default: "" }, // for drivers: "back door on 101 St"
+    location: {
+      type: { type: String, enum: ["Point"] },
+      coordinates: { type: [Number] }, // [longitude, latitude]
+    },
+  },
+  { timestamps: true }
+);
+
 const UsersSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
@@ -39,6 +55,12 @@ const UsersSchema = new mongoose.Schema(
     verificationNote: { type: String }, // admin's reason, shown to the food bank
     verificationRequestedAt: { type: Date },
     verifiedAt: { type: Date },
+
+    // Restaurants: where pickups happen. The default one is mirrored into
+    // address/location above, so distance search and older code keep working.
+    locations: { type: [PickupLocationSchema], default: undefined },
+    defaultLocationId: { type: mongoose.Schema.Types.ObjectId },
+    lastLocationId: { type: mongoose.Schema.Types.ObjectId }, // preselected on the next posting
 
     // Notification preferences.
     notifyByEmail: { type: Boolean, default: true },

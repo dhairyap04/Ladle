@@ -9,6 +9,9 @@ const {
   isAuthUser_handler,
   getUserInfo_handler,
   requestVerification,
+  addLocation_handler,
+  updateLocation_handler,
+  removeLocation_handler,
 } = require("../controllers/UserController");
 
 const { getReliability } = require("../controllers/ReliabilityController");
@@ -42,6 +45,9 @@ userRouter.post("/logout", logoutUser_handler);
 userRouter.get("/isAuth", verify, isAuthUser_handler);
 userRouter.post("/logout-others", verify, changeLimit, asyncHandler(logoutOthers_handler));
 userRouter.post("/update", verify, asyncHandler(updateUser));
+userRouter.post("/locations", verify, asyncHandler(addLocation_handler));
+userRouter.patch("/locations/:id", verify, asyncHandler(updateLocation_handler));
+userRouter.delete("/locations/:id", verify, asyncHandler(removeLocation_handler));
 userRouter.get("/info", verify, asyncHandler(getUserInfo_handler));
 userRouter.get("/:id/reliability", verify, asyncHandler(getReliability));
 userRouter.post("/verification/request", verify, asyncHandler(requestVerification));

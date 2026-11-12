@@ -18,6 +18,7 @@ const syncAdmin = (user) => {
   return true;
 };
 const { geocodeToPoint } = require("../geocode");
+const locations = require("../locations");
 
 const BCRYPT_ROUNDS = 12;
 const BCRYPT_HASH = /^\$2[aby]\$\d{2}\$/;
@@ -68,6 +69,7 @@ const publicUser = (user) => ({
   verificationStatus: user.isFoodbank ? user.verificationStatus || "unverified" : undefined,
   verificationNote: user.isFoodbank && user.verificationStatus === "rejected" ? user.verificationNote || "" : undefined,
   hasLocation: Boolean(user.location && user.location.coordinates && user.location.coordinates.length),
+  ...(user.role === "restaurant" ? locations.publicLocations(user) : {}),
 });
 
 const registerUser = async (req, res) => {
@@ -195,6 +197,24 @@ const updateUser = async (req, res) => {
     }
   }
 
+  // A restaurant's address is its default pickup location: change that instead.
+  let addressHandled = false;
+  if (req.user.role === "restaurant" && ("address" in $set || "address" in $unset)) {
+    const address = $set.address;
+    delete $set.address;
+    delete $unset.address; // clearing it would leave pickups with nowhere to go
+    if (address) {
+      const user = await mongoUsers.findById(req.user.id);
+      if (!user) return res.status(404).json({ msg: "Account not found." });
+      const changed = user.locations && user.locations.length
+        ? await locations.updateLocation(user, user.defaultLocationId || user.locations[0]._id, { address })
+        : await locations.addLocation(user, { address, name: locations.nameFromAddress(address) });
+      if (changed.error) return res.status(changed.status || 400).json({ msg: changed.error });
+      await user.save();
+      addressHandled = true;
+    }
+  }
+
   // Geocode a new address so distance search can measure from it.
   if ("address" in $set) {
     const location = await geocodeToPoint($set.address);
@@ -208,6 +228,10 @@ const updateUser = async (req, res) => {
   if (Object.keys($set).length) update.$set = $set;
   if (Object.keys($unset).length) update.$unset = $unset;
   if (!Object.keys(update).length) {
+    if (addressHandled) {
+      const user = await mongoUsers.findById(req.user.id);
+      return res.status(200).json({ user: publicUser(user) });
+    }
     return res.status(400).json({ msg: "Nothing to update." });
   }
 
@@ -281,7 +305,57 @@ const isAuthUser_handler = (req, res) => {
   res.status(200).json(req.user);
 };
 
+// Restaurants' saved pickup locations. Each returns the updated user.
+const restaurantOnly = async (req, res) => {
+  if (req.user.role !== "restaurant") {
+    res.status(403).json({ msg: "Only restaurants have pickup locations." });
+    return null;
+  }
+  const user = await mongoUsers.findById(req.user.id);
+  if (!user) res.status(404).json({ msg: "Account not found." });
+  return user;
+};
+
+const addLocation_handler = async (req, res) => {
+  const user = await restaurantOnly(req, res);
+  if (!user) return undefined;
+  const { values, error } = locations.parseLocationInput(req.body);
+  if (error) return res.status(400).json({ msg: error });
+  const added = await locations.addLocation(user, values, { makeDefault: req.body.makeDefault === true });
+  if (added.error) return res.status(400).json({ msg: added.error });
+  if (added.existing) return res.status(409).json({ msg: `That address is already saved as "${added.location.name}".` });
+  await user.save();
+  return res.status(201).json({ user: publicUser(user), locationId: String(added.location._id) });
+};
+
+const updateLocation_handler = async (req, res) => {
+  const user = await restaurantOnly(req, res);
+  if (!user) return undefined;
+  const { values, error } = locations.parseLocationInput(req.body, { partial: true });
+  if (error) return res.status(400).json({ msg: error });
+  const clash = values.address && (user.locations || []).find(
+    (l) => String(l._id) !== req.params.id && l.address.toLowerCase() === values.address.toLowerCase()
+  );
+  if (clash) return res.status(409).json({ msg: `That address is already saved as "${clash.name}".` });
+  const changed = await locations.updateLocation(user, req.params.id, values, { makeDefault: req.body.makeDefault === true });
+  if (changed.error) return res.status(changed.status || 400).json({ msg: changed.error });
+  await user.save();
+  return res.status(200).json({ user: publicUser(user) });
+};
+
+const removeLocation_handler = async (req, res) => {
+  const user = await restaurantOnly(req, res);
+  if (!user) return undefined;
+  const removed = await locations.removeLocation(user, req.params.id);
+  if (removed.error) return res.status(removed.status || 400).json({ msg: removed.error });
+  await user.save();
+  return res.status(200).json({ user: publicUser(user) });
+};
+
 module.exports = {
+  addLocation_handler,
+  updateLocation_handler,
+  removeLocation_handler,
   logoutOthers_handler,
   requestVerification,
   publicUser,

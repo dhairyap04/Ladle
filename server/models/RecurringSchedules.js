@@ -7,6 +7,12 @@ const RecurringSchedulesSchema = new mongoose.Schema(
   {
     donorId: { type: mongoose.Schema.Types.ObjectId, ref: "Users", required: true, index: true },
     fromRestaurantAddress: { type: String, required: true, trim: true },
+    // The saved location this schedule follows: editing that location updates
+    // the schedule too. Unset for a one-off address or a deleted location.
+    locationId: { type: mongoose.Schema.Types.ObjectId },
+    // Copied from the restaurant's saved location, if one was picked.
+    pickupLocationName: { type: String, trim: true },
+    pickupNotes: { type: String, trim: true }, // directions for whoever collects
     location: {
       type: { type: String, enum: ["Point"] },
       coordinates: { type: [Number] },

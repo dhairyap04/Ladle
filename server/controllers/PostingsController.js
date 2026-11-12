@@ -16,6 +16,7 @@ const DISPUTE_HOURS = 48; // a food bank can contest a no-show this long after t
 const UNCONFIRMED_AFTER_HOURS = 72;
 
 const { requireVerifiedToClaim } = require("../config");
+const { resolvePickup } = require("../locations");
 
 const MAX_NEW_POSTING_ALERTS = 200;
 
@@ -123,14 +124,12 @@ const parsePickupTime = (value) => {
 // The client computes pickupEndsAt from the pickup date and end time in the
 // restaurant's own time zone, which the server has no other way to know.
 const parsePostingInput = (body = {}) => {
-  const { fromRestaurantAddress, notes, pickupDate } = body;
+  // The pickup address is worked out separately (see resolvePickup).
+  const { notes, pickupDate } = body;
   const pickupTimeBegin = parsePickupTime(body.pickupTimeBegin);
   const pickupTimeEnd = parsePickupTime(body.pickupTimeEnd);
   const pickupEndsAt = new Date(body.pickupEndsAt);
 
-  if (typeof fromRestaurantAddress !== "string" || !fromRestaurantAddress.trim()) {
-    return { error: "Please enter the pickup address." };
-  }
   if (typeof pickupDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(pickupDate)) {
     return { error: "Please enter the pickup date." };
   }
@@ -160,7 +159,6 @@ const parsePostingInput = (body = {}) => {
   return {
     values: {
       ...food.values,
-      fromRestaurantAddress: fromRestaurantAddress.trim(),
       pickupDate,
       pickupTimeBegin,
       pickupTimeEnd,
@@ -197,14 +195,22 @@ const notFound = (res) => res.status(404).json({ msg: "Posting not found." });
 const createPosting = async (req, res) => {
   const { values, error } = parsePostingInput(req.body);
   if (error) return res.status(400).json({ msg: error });
+  const donor = await mongoUsers.findById(req.user.id);
+  const pickup = await resolvePickup(donor, req.body);
+  if (pickup.error) return res.status(400).json({ msg: pickup.error });
 
   const posting = new mongoFoodPostings({
     ...values,
+    ...pickup.fields,
     donorId: req.user.id,
     fromRestaurantName: req.user.name,
     status: "open",
   });
-  posting.location = await geocodeToPoint(posting.fromRestaurantAddress);
+  if (!pickup.fields.location) posting.location = await geocodeToPoint(posting.fromRestaurantAddress);
+  if (donor && (pickup.locationId || pickup.userChanged)) {
+    if (pickup.locationId) donor.lastLocationId = pickup.locationId;
+    await donor.save();
+  }
   await applyPhotoChange(posting, req.body);
   await posting.save();
   await alertFoodBanks(posting);
@@ -418,11 +424,22 @@ const editPosting = async (req, res) => {
   if (!posting) return undefined;
   const { values, error } = parsePostingInput(req.body);
   if (error) return res.status(400).json({ msg: error });
-  const addressChanged = values.fromRestaurantAddress !== posting.fromRestaurantAddress;
+  const donor = await mongoUsers.findById(req.user.id);
+  const pickup = await resolvePickup(donor, req.body);
+  if (pickup.error) return res.status(400).json({ msg: pickup.error });
   posting.set(values);
-  if (addressChanged || !posting.location) {
+  if (pickup.locationId) {
+    posting.set({ pickupLocationName: undefined, pickupNotes: undefined, location: undefined, ...pickup.fields });
+  } else if (pickup.fields.fromRestaurantAddress !== posting.fromRestaurantAddress) {
+    // A typed address: it isn't one of the saved locations any more.
+    posting.set({ pickupLocationName: undefined, location: undefined, ...pickup.fields });
+  } else if (typeof req.body.pickupNotes === "string") {
+    posting.pickupNotes = pickup.fields.pickupNotes;
+  }
+  if (!posting.location || !posting.location.coordinates || !posting.location.coordinates.length) {
     posting.location = await geocodeToPoint(posting.fromRestaurantAddress);
   }
+  if (pickup.userChanged) await donor.save();
   await applyPhotoChange(posting, req.body);
   await posting.save();
   return res.status(200).json(posting);

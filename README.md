@@ -4,7 +4,7 @@
 
 Ladle connects restaurants that have surplus food with food banks that can collect it. Restaurants post what they have and when it can be picked up; food banks see nearby postings on a list and a map, claim one, and collect it themselves or ask a volunteer driver to bring it.
 
-Ladle is designed, built and maintained by **Dhairya Prajapati**. Development started in **February 2026** and is ongoing. (It was called MealDrop until November 2026.)
+Ladle is designed, built and maintained by **Dhairya Prajapati**. Development started in **February 2026** and is ongoing.
 
 <p align="center"><img src="docs/screenshots/landing.jpg" width="720" alt="Ladle landing page"></p>
 
@@ -16,6 +16,7 @@ In the United States, an estimated **30 to 40 percent** of the food supply is wa
 
 **For restaurants**
 - Post surplus food in about a minute: food types, quantity and weight, storage (room temperature, fridge, freezer, hot), when it was prepared, allergens and a photo.
+- Save **pickup locations** once, with directions for drivers ("back door off the alley"). With one location it's filled in on every post; a chain with several branches picks one, and a one-off address (say, a catering event) still works.
 - Set up **weekly donations** (for example, bread every weeknight at 9 PM); Ladle posts them automatically.
 - Get notified when a food bank claims and picks up your food, and **message** the food bank about pickup details.
 - See your **impact**: donations, kilograms rescued and estimated meals, month by month. Download your records as CSV or print a **donation record** for each pickup.

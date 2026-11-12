@@ -257,7 +257,12 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, ti
       <Stack spacing={0.75} sx={{ mt: 1.5 }}>
         <Stack direction="row" spacing={1} alignItems="flex-start">
           <StorefrontRoundedIcon fontSize="small" sx={{ color: "#A34F06", mt: "2px" }} />
-          <Typography variant="body2"><strong>From {delivery.restaurantName}</strong> · {delivery.pickupAddress}</Typography>
+          <Box>
+            <Typography variant="body2">
+              <strong>From {delivery.restaurantName}{delivery.pickupLocationName ? ` (${delivery.pickupLocationName})` : ""}</strong> · {delivery.pickupAddress}
+            </Typography>
+            {delivery.pickupNotes && <Typography variant="body2" color="text.secondary">Directions: {delivery.pickupNotes}</Typography>}
+          </Box>
         </Stack>
         <Stack direction="row" spacing={1} alignItems="flex-start">
           <VolunteerActivismRoundedIcon fontSize="small" sx={{ color: "primary.main", mt: "2px" }} />

@@ -23,6 +23,9 @@ const FoodPostingsSchema = new mongoose.Schema(
     donorId: { type: mongoose.Schema.Types.ObjectId, ref: "Users", index: true },
     fromRestaurantName: { type: String, required: true },
     fromRestaurantAddress: { type: String, required: true, trim: true },
+    // Copied from the restaurant's saved location, if one was picked.
+    pickupLocationName: { type: String, trim: true },
+    pickupNotes: { type: String, trim: true }, // directions for whoever collects
     // Geocoded pickup address; missing when geocoding is off or failed.
     location: {
       type: { type: String, enum: ["Point"] },
