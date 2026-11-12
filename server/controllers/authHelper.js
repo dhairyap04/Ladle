@@ -18,6 +18,7 @@ const tokenPayload = (user) => ({
   email: user.email,
   name: user.name,
   isFoodbank: Boolean(user.isFoodbank),
+  isAdmin: Boolean(user.isAdmin),
 });
 
 const generateAccessToken = (user) =>
@@ -47,25 +48,32 @@ const decode = (token, secret) => {
   }
 };
 
-// Authenticates the request from the access token, falling back to the refresh
-// token (and issuing a new access token) when the access token has expired.
-const verify = (req, res, next) => {
+// Reads the user from the access token, falling back to the refresh token (and
+// issuing a new access token) when the access token has expired.
+const authenticate = (req, res) => {
   const { accessToken, refreshToken } = req.cookies || {};
 
   const fromAccess = accessToken && decode(accessToken, accessTokenSecret);
-  if (fromAccess) {
-    req.user = fromAccess;
-    return next();
-  }
+  if (fromAccess) return fromAccess;
 
   const fromRefresh = refreshToken && decode(refreshToken, refreshTokenSecret);
   if (fromRefresh) {
-    req.user = fromRefresh;
     res.cookie("accessToken", generateAccessToken(fromRefresh), cookieOptions(ACCESS_TOKEN_MS));
-    return next();
+    return fromRefresh;
   }
+  return null;
+};
 
+const verify = (req, res, next) => {
+  req.user = authenticate(req, res);
+  if (req.user) return next();
   return res.status(401).json({ msg: "Please log in to continue." });
+};
+
+// Like verify, but lets guests through with req.user = null.
+const optionalAuth = (req, res, next) => {
+  req.user = authenticate(req, res);
+  next();
 };
 
 const requireDonor = (req, res, next) => {
@@ -82,8 +90,21 @@ const requireFoodbank = (req, res, next) => {
   return next();
 };
 
+// Checks the database, not the token, so revoking admin takes effect at once.
+const requireAdmin = async (req, res, next) => {
+  try {
+    const user = await require("../models/Users").findById(req.user.id, "isAdmin");
+    if (!user || !user.isAdmin) return res.status(403).json({ msg: "Only MealDrop admins can do this." });
+    return next();
+  } catch (err) {
+    return next(err);
+  }
+};
+
 module.exports = {
   verify,
+  requireAdmin,
+  optionalAuth,
   requireDonor,
   requireFoodbank,
   setAuthCookies,

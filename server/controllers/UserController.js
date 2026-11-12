@@ -2,11 +2,46 @@ const bcrypt = require("bcryptjs");
 
 const mongoUsers = require("../models/Users");
 const { setAuthCookies, clearAuthCookies } = require("./authHelper");
+const { FOOD_TYPES } = require("../constants");
+const { adminEmails } = require("../config");
+const { notify } = require("../notify");
+
+// CRA business number for a registered charity: 9 digits, "RR", 4 digits.
+const CHARITY_NUMBER = /^\d{9}RR\d{4}$/;
+const normalizeCharityNumber = (value) => String(value || "").replace(/[\s-]/g, "").toUpperCase();
+
+// Grants or removes admin according to ADMIN_EMAILS. Returns true if it changed.
+const syncAdmin = (user) => {
+  const shouldBeAdmin = adminEmails.includes(String(user.email).toLowerCase());
+  if (Boolean(user.isAdmin) === shouldBeAdmin) return false;
+  user.isAdmin = shouldBeAdmin;
+  return true;
+};
+const { geocodeToPoint } = require("../geocode");
 
 const BCRYPT_ROUNDS = 12;
 const BCRYPT_HASH = /^\$2[aby]\$\d{2}\$/;
 // Profile fields a user may change; anything else in the body is ignored.
 const EDITABLE_FIELDS = ["name", "address", "openHours", "phoneNumber", "website", "charitableTaxNum"];
+
+// Food bank receiving-profile fields, each with a parser that returns the value
+// to store, undefined to clear the field, or throws a user-facing message.
+const pickKnown = (list, allowed) =>
+  Array.isArray(list) ? [...new Set(list.filter((item) => allowed.includes(item)))] : [];
+const optionalNumber = (label, min, max) => (value) => {
+  if (value === "" || value === null || value === undefined) return undefined;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < min || n > max) throw new Error(`${label} must be between ${min} and ${max}.`);
+  return n;
+};
+const FOODBANK_FIELDS = {
+  acceptedFoodTypes: (value) => pickKnown(value, FOOD_TYPES),
+  coldStorage: (value) => pickKnown(value, ["refrigerated", "frozen"]),
+  receivingDays: (value) =>
+    Array.isArray(value) ? [...new Set(value.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort() : [],
+  maxPickupKg: optionalNumber("Maximum pickup weight", 1, 5000),
+  serviceRadiusKm: optionalNumber("Service radius", 1, 200),
+};
 
 const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
 
@@ -20,6 +55,17 @@ const publicUser = (user) => ({
   phoneNumber: user.phoneNumber || "",
   website: user.website || "",
   charitableTaxNum: user.charitableTaxNum || "",
+  acceptedFoodTypes: user.acceptedFoodTypes || [],
+  coldStorage: user.coldStorage || [],
+  receivingDays: user.receivingDays || [],
+  maxPickupKg: user.maxPickupKg ?? null,
+  serviceRadiusKm: user.serviceRadiusKm ?? null,
+  notifyByEmail: user.notifyByEmail !== false,
+  notifyNewPostings: user.notifyNewPostings !== false,
+  isAdmin: Boolean(user.isAdmin),
+  verificationStatus: user.isFoodbank ? user.verificationStatus || "unverified" : undefined,
+  verificationNote: user.isFoodbank && user.verificationStatus === "rejected" ? user.verificationNote || "" : undefined,
+  hasLocation: Boolean(user.location && user.location.coordinates && user.location.coordinates.length),
 });
 
 const registerUser = async (req, res) => {
@@ -36,12 +82,14 @@ const registerUser = async (req, res) => {
   }
 
   try {
-    const user = await mongoUsers.create({
+    const user = new mongoUsers({
       name: name.trim(),
       email: email.trim(),
       password: await bcrypt.hash(password, BCRYPT_ROUNDS),
       isFoodbank,
     });
+    syncAdmin(user);
+    await user.save();
     setAuthCookies(res, user);
     return res.status(201).json({ user: publicUser(user) });
   } catch (err) {
@@ -72,6 +120,8 @@ const loginUser_handler = async (req, res) => {
     await user.save();
   }
 
+  if (syncAdmin(user)) await user.save();
+
   setAuthCookies(res, user);
   return res.status(200).json({ user: publicUser(user) });
 };
@@ -92,6 +142,50 @@ const updateUser = async (req, res) => {
     } else {
       $set[field] = value;
     }
+  }
+
+  for (const field of ["notifyByEmail", ...(req.user.isFoodbank ? ["notifyNewPostings"] : [])]) {
+    if (typeof body[field] === "boolean") $set[field] = body[field];
+  }
+
+  if ("charitableTaxNum" in $set) {
+    $set.charitableTaxNum = normalizeCharityNumber($set.charitableTaxNum);
+    if (!CHARITY_NUMBER.test($set.charitableTaxNum)) {
+      return res.status(400).json({ msg: "Charitable registration numbers look like 123456789RR0001." });
+    }
+  }
+  // A changed charitable number or name has to be verified again.
+  if (req.user.isFoodbank && ("charitableTaxNum" in $set || "charitableTaxNum" in $unset || "name" in $set)) {
+    const current = await mongoUsers.findById(req.user.id, "name charitableTaxNum verificationStatus");
+    const changed =
+      (current && "name" in $set && $set.name !== current.name) ||
+      (current && ("charitableTaxNum" in $set || "charitableTaxNum" in $unset) && $set.charitableTaxNum !== current.charitableTaxNum);
+    if (changed && current && ["pending", "verified"].includes(current.verificationStatus)) {
+      $set.verificationStatus = "unverified";
+    }
+  }
+
+  if (req.user.isFoodbank) {
+    for (const [field, parse] of Object.entries(FOODBANK_FIELDS)) {
+      if (!(field in body)) continue;
+      let value;
+      try {
+        value = parse(body[field]);
+      } catch (err) {
+        return res.status(400).json({ msg: err.message });
+      }
+      if (value === undefined) $unset[field] = "";
+      else $set[field] = value;
+    }
+  }
+
+  // Geocode a new address so distance search can measure from it.
+  if ("address" in $set) {
+    const location = await geocodeToPoint($set.address);
+    if (location) $set.location = location;
+    else $unset.location = "";
+  } else if ("address" in $unset) {
+    $unset.location = "";
   }
 
   const update = {};
@@ -119,6 +213,30 @@ const updateUser = async (req, res) => {
   }
 };
 
+// A food bank asks an admin to verify it.
+const requestVerification = async (req, res) => {
+  const user = await mongoUsers.findById(req.user.id);
+  if (!user) return res.status(404).json({ msg: "Account not found." });
+  if (!user.isFoodbank) return res.status(403).json({ msg: "Only food banks can be verified." });
+  if (user.verificationStatus === "verified") return res.status(409).json({ msg: "Your food bank is already verified." });
+  if (!user.charitableTaxNum || !CHARITY_NUMBER.test(user.charitableTaxNum)) {
+    return res.status(400).json({ msg: "Add your charitable registration number to your profile first." });
+  }
+  if (!user.address) return res.status(400).json({ msg: "Add your address to your profile first." });
+  user.verificationStatus = "pending";
+  user.verificationRequestedAt = new Date();
+  user.verificationNote = undefined;
+  await user.save();
+  const admins = await mongoUsers.find({ isAdmin: true }, "_id");
+  await notify(admins.map((a) => a._id), {
+    type: "verification",
+    title: `${user.name} asked to be verified`,
+    body: `Charitable registration # ${user.charitableTaxNum}.`,
+    link: "/admin",
+  });
+  return res.status(200).json({ user: publicUser(user) });
+};
+
 const getUserInfo_handler = async (req, res) => {
   const user = await mongoUsers.findById(req.user.id);
   if (!user) return res.status(404).json({ msg: "Account not found." });
@@ -135,6 +253,9 @@ const isAuthUser_handler = (req, res) => {
 };
 
 module.exports = {
+  requestVerification,
+  publicUser,
+  CHARITY_NUMBER,
   registerUser,
   updateUser,
   loginUser_handler,

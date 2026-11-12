@@ -24,13 +24,19 @@ import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
 import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
 import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
-import Geocode from "react-geocode";
+import LunchDiningRoundedIcon from '@mui/icons-material/LunchDiningRounded';
+import AcUnitRoundedIcon from '@mui/icons-material/AcUnitRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 
 // Root imports
 import api, { errorMessage } from '../../api';
 import { formatPickupDate, formatPickupTime, formatPickupWindow } from '../../time';
 import AppHeader from '../Shared/AppHeader';
+import { mapPoints } from '../../mapPoints';
+import MessagesPanel from './MessagesPanel';
 import StatusChip from '../Shared/StatusChip';
+import { FOOD_TYPES, STORAGE, allergenSummary, photoUrl } from '../../food';
 import SimpleMap from '../MainPage/Components/GoogleMap';
 import PostingModal from '../MainPage/Components/CreatePosting';
 
@@ -84,12 +90,7 @@ const ViewPost = () => {
     api.get(`posting/one/${id}`)
       .then(res => {
         setPost(res.data);
-        Geocode.fromAddress(res.data.fromRestaurantAddress)
-          .then((geo) => {
-            const { lat, lng } = geo.results[0].geometry.location;
-            setLatlng([{ lat, lng, name: res.data.fromRestaurantName }]);
-          })
-          .catch(() => {});
+        mapPoints([res.data]).then(setLatlng);
       })
       .catch(err => setLoadError(errorMessage(err, "Couldn't load this posting.")));
 
@@ -138,7 +139,19 @@ const ViewPost = () => {
       );
     }
     if (isOwner && post.status === "claimed") {
-      return <Alert severity="success">Claimed by {post.claimedByName}.</Alert>;
+      return (
+        <Alert severity="success" icon={post.claimedByVerified ? <VerifiedRoundedIcon /> : undefined}>
+          Claimed by {post.claimedByName}{post.claimedByVerified ? " (verified food bank)" : ""}. Use the messages to arrange pickup.
+        </Alert>
+      );
+    }
+    if (post.status === "picked_up" && (isOwner || isClaimer)) {
+      return (
+        <Stack spacing={1.5}>
+          <Alert severity="success">{STATUS_TEXT.picked_up}</Alert>
+          <Button component={Link} to={`/receipt/${post._id}`} variant="outlined">View donation record</Button>
+        </Stack>
+      );
     }
     if (!isOpen) {
       return <Alert severity="info">{STATUS_TEXT[post.status]}</Alert>;
@@ -185,6 +198,14 @@ const ViewPost = () => {
   } else {
     PostInfo = (
       <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5 }}>
+        {post.hasPhoto && (
+          <Box
+            component="img"
+            src={photoUrl(post)}
+            alt={`Food from ${post.fromRestaurantName}`}
+            sx={{ display: "block", width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 3, mb: 2.5 }}
+          />
+        )}
         <StatusChip status={status} />
         <Typography component="h1" variant="h4" sx={{ mt: 1.5, color: "primary.dark" }}>{post.fromRestaurantName}</Typography>
 
@@ -199,7 +220,19 @@ const ViewPost = () => {
             {post.pickupDate ? formatPickupWindow(post) : `Posted ${new Date(post.createdAt).toDateString()}`}
           </DetailRow>
           <DetailRow icon={PlaceRoundedIcon} label="Pickup address">{post.fromRestaurantAddress}</DetailRow>
-          <DetailRow icon={NotesRoundedIcon} label="About the food">{post.notes || "No notes added."}</DetailRow>
+          <DetailRow icon={LunchDiningRoundedIcon} label="Food">
+            {[
+              (post.foodTypes || []).map((t) => FOOD_TYPES[t]).join(", ") || "Not specified",
+              post.quantity,
+              post.estimatedWeightKg ? `about ${post.estimatedWeightKg} kg` : "",
+            ].filter(Boolean).join(" · ")}
+          </DetailRow>
+          <DetailRow icon={AcUnitRoundedIcon} label="Storage">
+            {STORAGE[post.storage || "ambient"].label}
+            {post.preparedAt ? ` · prepared ${new Date(post.preparedAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}` : ""}
+          </DetailRow>
+          <DetailRow icon={WarningAmberRoundedIcon} label="Allergens">{allergenSummary(post.allergens)}</DetailRow>
+          {post.notes && <DetailRow icon={NotesRoundedIcon} label="Notes">{post.notes}</DetailRow>}
         </Stack>
 
         <Divider sx={{ my: 3 }} />
@@ -218,9 +251,14 @@ const ViewPost = () => {
         </Button>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1.1fr) minmax(0, 1fr)" }, gap: { xs: 3, md: 4 }, alignItems: "start" }}>
           {PostInfo}
-          <Paper variant="outlined" sx={{ height: { xs: 260, md: 480 }, borderRadius: 5, overflow: "hidden", position: { md: "sticky" }, top: { md: 88 } }}>
-            <SimpleMap latlng={latlng} />
-          </Paper>
+          <Stack spacing={3}>
+            {post && user && (isOwner || user.isFoodbank) && (
+              <MessagesPanel postingId={post._id} user={user} isOwner={Boolean(isOwner)} />
+            )}
+            <Paper variant="outlined" sx={{ height: { xs: 260, md: 360 }, borderRadius: 5, overflow: "hidden" }}>
+              <SimpleMap latlng={latlng} />
+            </Paper>
+          </Stack>
         </Box>
       </Container>
 
@@ -231,12 +269,7 @@ const ViewPost = () => {
           onSaved={(updated) => {
             setPost(updated);
             setEditing(false);
-            Geocode.fromAddress(updated.fromRestaurantAddress)
-              .then((geo) => {
-                const { lat, lng } = geo.results[0].geometry.location;
-                setLatlng([{ lat, lng, name: updated.fromRestaurantName }]);
-              })
-              .catch(() => setLatlng([]));
+            mapPoints([updated]).then(setLatlng);
           }}
         />
       )}

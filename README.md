@@ -14,10 +14,25 @@ In the United States, an estimated **30 to 40 percent** of the food supply is wa
 
 ## What it does
 
-- **Restaurants** sign up, post the pickup address, date and time window, and add notes about the food. They can edit or withdraw a posting while it's still open.
-- **Food banks** browse open postings in a list and on a map, claim one (only one food bank can claim each posting), and mark it picked up once they've collected it.
-- Each account has a "Your postings" or "Your pickups" list, so both sides can see where every donation stands: open, claimed, picked up, expired or withdrawn.
+**For restaurants**
+- Post surplus food in about a minute: food types, quantity and weight, storage (room temperature, fridge, freezer, hot), when it was prepared, allergens and a photo.
+- Set up **weekly donations** (for example, bread every weeknight at 9 PM); MealDrop posts them automatically.
+- Get notified when a food bank claims and picks up your food, and **message** the food bank about pickup details.
+- See your **impact**: donations, kilograms rescued and estimated meals, month by month. Download your records as CSV or print a **donation record** for each pickup.
+
+**For food banks**
+- Browse open pickups on a list and a map, and **search by distance**, day, pickup time, food type and allergens to avoid.
+- Describe what you can accept (food types, fridge/freezer, maximum weight, receiving days and hours, travel radius). Postings are labelled as a good fit or say why not, and you're **alerted** when suitable food is posted nearby.
+- Claim a pickup (only one food bank can claim each posting), ask the restaurant questions first, and mark it picked up once collected.
+- Get **verified** by adding your charitable registration number. Restaurants see a verified badge when you claim their food.
+
+**For everyone**
+- Notifications under the bell, optional browser alerts, and optional email.
+- An **installable app (PWA)** with a phone-friendly bottom navigation bar and an offline notice.
 - Postings expire automatically when their pickup window ends.
+
+**For admins**
+- An admin console to review food bank verifications (with a link to the CRA charities listing) and see activity across the platform.
 
 ## Screenshots
 
@@ -36,19 +51,28 @@ The design direction, competitor research and colour palette are documented in [
 - **Client:** React with Material UI, built with Vite. Google Maps JavaScript API and Geocoding show posting locations on a map.
 - **Server:** Node.js and Express REST API with a MongoDB database (Mongoose).
 - **Auth:** passwords are hashed with bcrypt; sessions use short-lived JWT access tokens and refresh tokens stored in httpOnly cookies.
-- **Access control:** only restaurants can create, edit or withdraw postings, only food banks can claim them, and each user can only change their own data.
+- **Access control:** only restaurants can create, edit or withdraw postings, only food banks can claim them, each user can only change their own data, and only admins can verify food banks.
+- **PWA:** web app manifest and a service worker (production builds only) that caches the app shell but never API data.
 
 ## Running locally
 
 1. **Server:** copy `server/.env.example` to `server/.env` and fill in `MONGO_URI`, `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`. The server won't start without them. Then run `cd server && npm install && npm start`.
 2. **Client:** create `client/.env` with `REACT_APP_HOST_URL=http://localhost:5000/` (keep the trailing slash) and `REACT_APP_GCP_KEY=<your Google Maps key>`. Then run `cd client && npm install && npm start` (Vite dev server on http://localhost:3000). `npm run build` writes the production bundle to `client/build/`, and `npm run lint` runs ESLint.
+3. **Tests:** `cd server && npm test` runs the API test suite against an in-memory MongoDB (no database or keys needed).
+
+### Optional server settings
+
+| Variable | What it enables |
+|---|---|
+| `GOOGLE_MAPS_API_KEY` | Geocodes addresses when they're saved, for distance search, distances on cards and new-food alerts by radius. Restrict the key to the Geocoding API. |
+| `SMTP_URL`, `EMAIL_FROM` | Emails notifications as well as showing them in the app. |
+| `ADMIN_EMAILS` | Comma-separated emails of accounts that get the admin console (applied when they sign up or log in). |
+| `REQUIRE_VERIFIED_TO_CLAIM` | `true` lets only verified food banks claim postings. Off by default. |
 
 ## Roadmap
 
-- Richer postings: food type, quantity, allergens and photos.
-- Notifications when a posting is claimed or about to expire.
-- Distance filtering and "near me" search.
-- Volunteer drivers who can collect food on a food bank's behalf.
-- Impact reports and donation receipts for restaurants.
+- Volunteer drivers who can collect food on a food bank's behalf, with dispatch.
+- Reliability signals: no-show tracking and ratings.
+- Web push notifications for the installed app.
 
 See [AUDIT_REPORT.md](AUDIT_REPORT.md) for the full list of planned improvements.

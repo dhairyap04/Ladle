@@ -7,10 +7,11 @@ const mainRouter = require("./routes/RouteController");
 
 const app = express();
 
-app.use(express.json());
+// Postings can carry a resized photo as a data URL.
+app.use(express.json({ limit: "3mb" }));
 app.use(express.urlencoded({ extended: true }));
 // Only the configured front-end origins may send credentialed requests.
-app.use(cors({ origin: clientOrigins, credentials: true }));
+app.use(cors({ origin: clientOrigins, credentials: true, exposedHeaders: ["X-Search-Origin"] }));
 app.use(cookieParser());
 
 app.use("/", mainRouter);
