@@ -46,7 +46,7 @@ Researched in November 2026 from public sources (listed at the end). Figures are
 
 ## Name
 
-The app was renamed from **MealDrop** to **Ladle** in November 2026. "Ladle" is one easy-to-say word, it is visual (a ladle is the tool for serving food to others), and it suits community kitchens and food banks without sounding like a discount marketplace. Because the name doesn't describe the service on its own, it's paired with a short tagline where needed, for example *"Ladle: surplus food, picked up."*
+The app is called **Ladle**. The name is one easy-to-say word, it is visual (a ladle is the tool for serving food to others), and it suits community kitchens and food banks without sounding like a discount marketplace. Because the name doesn't describe the service on its own, it's paired with a short tagline where needed, for example *"Ladle: surplus food, picked up."*
 
 Before relying on the name commercially, check the Canadian Trademarks Database (CIPO), domains and app store listings. A November 2026 web search found no established food-rescue product called Ladle, but did find a portfolio page describing a food-rescue marketplace project with that name.
 

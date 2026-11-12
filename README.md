@@ -4,7 +4,7 @@
 
 Ladle connects restaurants that have surplus food with food banks that can collect it. Restaurants post what they have and when it can be picked up; food banks see nearby postings on a list and a map, claim one, and collect it themselves or ask a volunteer driver to bring it.
 
-Ladle is designed, built and maintained by **Dhairya Prajapati**. Development started in **February 2026** and is ongoing. (It was called MealDrop until November 2026.)
+Ladle is designed, built and maintained by **Dhairya Prajapati**. Development started in **February 2026** and is ongoing.
 
 <p align="center"><img src="docs/screenshots/landing.jpg" width="720" alt="Ladle landing page"></p>
 
