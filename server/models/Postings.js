@@ -2,7 +2,9 @@ const mongoose = require("mongoose");
 const { FOOD_TYPES, ALLERGENS, STORAGE } = require("../constants");
 
 // open -> claimed -> picked_up; open -> expired (pickup window passed) or cancelled (withdrawn by donor).
-const POSTING_STATUSES = ["open", "claimed", "picked_up", "expired", "cancelled"];
+// claimed -> open (food bank released it), no_show (restaurant reported nobody came)
+// or unconfirmed (nobody said what happened within 72 hours of the window).
+const POSTING_STATUSES = ["open", "claimed", "picked_up", "expired", "cancelled", "no_show", "unconfirmed"];
 
 // Times are stored as HHMM integers (e.g. 1430 for 2:30 PM); 2400 means midnight at the end of the day.
 const pickupTime = {

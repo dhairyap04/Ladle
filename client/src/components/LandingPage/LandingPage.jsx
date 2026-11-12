@@ -6,9 +6,11 @@ import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import AppHeader from "../Shared/AppHeader";
 import Logo from "../Shared/Logo";
 import useAuthUser from "../../useAuthUser";
+import usePageTitle from "../../usePageTitle";
 
 const STEPS = [
   {
@@ -51,6 +53,17 @@ const AUDIENCES = [
       "Keep track of every pickup you've committed to",
     ],
   },
+  {
+    icon: LocalShippingRoundedIcon,
+    title: "For volunteer drivers",
+    role: "driver",
+    cta: "Volunteer to drive",
+    points: [
+      "Deliver for food banks that can't collect themselves",
+      "Only see jobs your vehicle can carry, near you, when you're free",
+      "Accept a delivery in one tap and track your impact",
+    ],
+  },
 ];
 
 const IconBadge = ({ icon: Icon, tone = "leaf" }) => (
@@ -62,7 +75,7 @@ const IconBadge = ({ icon: Icon, tone = "leaf" }) => (
       display: "grid",
       placeItems: "center",
       bgcolor: tone === "leaf" ? "primary.light" : "#FDEEDC",
-      color: tone === "leaf" ? "primary.main" : "#B85A08",
+      color: tone === "leaf" ? "primary.main" : "#A34F06",
       flexShrink: 0,
     }}
   >
@@ -71,6 +84,7 @@ const IconBadge = ({ icon: Icon, tone = "leaf" }) => (
 );
 
 const LandingPage = () => {
+  usePageTitle("");
   const user = useAuthUser();
 
   return (
@@ -89,7 +103,7 @@ const LandingPage = () => {
           }}
         >
           <Box>
-            <Chip label="Free for restaurants and food banks" sx={{ bgcolor: "#FDEEDC", color: "#B85A08", mb: 2 }} />
+            <Chip label="Free for restaurants and food banks" sx={{ bgcolor: "#FDEEDC", color: "#A34F06", mb: 2 }} />
             <Typography component="h1" variant="h2" sx={{ fontSize: { xs: "2.4rem", md: "3.5rem" }, lineHeight: 1.1, color: "primary.dark" }}>
               Good food, picked up. <Box component="span" sx={{ color: "primary.main" }}>Not thrown out.</Box>
             </Typography>
@@ -98,7 +112,7 @@ const LandingPage = () => {
             </Typography>
             {user ? (
               <Button component={RouterLink} to="/main" variant="contained" size="large" sx={{ mt: 4 }}>
-                {user.isFoodbank ? "See open pickups" : "Go to your postings"}
+                {{ foodbank: "See open pickups", driver: "See deliveries" }[user.role] || "Go to your postings"}
               </Button>
             ) : (
               <>
@@ -131,7 +145,7 @@ const LandingPage = () => {
               <Paper key={step.title} variant="outlined" sx={{ p: 3, borderRadius: 4, bgcolor: "background.default" }}>
                 <Stack direction="row" spacing={2} alignItems="center">
                   <IconBadge icon={step.icon} />
-                  <Typography sx={{ fontWeight: 800, color: "#B85A08" }}>Step {index + 1}</Typography>
+                  <Typography sx={{ fontWeight: 800, color: "#A34F06" }}>Step {index + 1}</Typography>
                 </Stack>
                 <Typography component="h3" variant="h6" sx={{ mt: 2 }}>{step.title}</Typography>
                 <Typography sx={{ mt: 1, color: "text.secondary" }}>{step.text}</Typography>
@@ -143,11 +157,11 @@ const LandingPage = () => {
 
       {/* Audiences */}
       <Container maxWidth="lg" component="section" aria-label="Who Ladle is for" sx={{ py: { xs: 6, md: 8 } }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 3 }}>
           {AUDIENCES.map((audience, index) => (
             <Paper key={audience.title} variant="outlined" sx={{ p: { xs: 3, md: 4 }, borderRadius: 4 }}>
               <Stack direction="row" spacing={2} alignItems="center">
-                <IconBadge icon={audience.icon} tone={index === 0 ? "leaf" : "tangerine"} />
+                <IconBadge icon={audience.icon} tone={index === 1 ? "tangerine" : "leaf"} />
                 <Typography component="h2" variant="h5">{audience.title}</Typography>
               </Stack>
               <Stack component="ul" spacing={1.25} sx={{ listStyle: "none", p: 0, my: 3 }}>

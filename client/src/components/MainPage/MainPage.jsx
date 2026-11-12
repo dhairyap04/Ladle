@@ -13,6 +13,9 @@ import ScheduleList from "./Components/ScheduleList";
 import { mapPoints } from "../../mapPoints";
 import api from "../../api";
 import useAuthUser from "../../useAuthUser";
+import { roleOf } from "../../roles";
+import DriverHome from "./DriverHome";
+import usePageTitle from "../../usePageTitle";
 
 
 const EmptyState = ({ children }) => (
@@ -39,8 +42,15 @@ const Stat = ({ value, label }) => (
   </Paper>
 );
 
+// Restaurants, food banks and guests browse postings; drivers get their own home.
 const MainPage = () => {
   const user = useAuthUser();
+  if (user && roleOf(user) === "driver") return <DriverHome user={user} />;
+  return <PostingsHome user={user} />;
+};
+
+const PostingsHome = ({ user }) => {
+  usePageTitle(roleOf(user) === "restaurant" ? "Your postings" : "Open pickups");
   const [postings, setPostings] = useState(null); // null while loading
   const [loadError, setLoadError] = useState(false);
   const [myPostings, setMyPostings] = useState([]);
@@ -122,7 +132,7 @@ const MainPage = () => {
   }, []);
 
   useEffect(() => { if (user) loadMine(); }, [user, loadMine]);
-  useEffect(() => { if (user && !user.isFoodbank) loadSchedules(); }, [user, loadSchedules]);
+  useEffect(() => { if (roleOf(user) === "restaurant") loadSchedules(); }, [user, loadSchedules]);
 
   const handleCreated = () => {
     setCreating(false);
@@ -132,7 +142,7 @@ const MainPage = () => {
     loadSchedules();
   };
 
-  const isRestaurant = user && !user.isFoodbank;
+  const isRestaurant = roleOf(user) === "restaurant";
   const count = (status) => myPostings.filter((p) => p.status === status).length;
 
   const openList = (
@@ -180,7 +190,7 @@ const MainPage = () => {
           {user.isFoodbank ? "Pickups you claim will show up here." : "You haven't posted any food yet. Your postings will show up here."}
         </EmptyState>
       ) : (
-        myPostings.map((posting) => <PostingTile key={posting._id} postingData={posting} showStatus />)
+        myPostings.map((posting) => <PostingTile key={posting._id} postingData={posting} showStatus foodTitle={isRestaurant} />)
       )}
     </Section>
   );

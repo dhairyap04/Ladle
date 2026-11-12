@@ -9,6 +9,7 @@ import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import { canInstall, isStandalone, onInstallAvailable, promptInstall } from "../../pwa";
+import { HOME_LABELS, roleOf } from "../../roles";
 
 const DISMISS_KEY = "ladle.installDismissed";
 
@@ -83,7 +84,7 @@ export const InstallPrompt = () => {
 export const BottomNav = ({ user }) => {
   const { pathname } = useLocation();
   const items = [
-    { to: "/main", label: user.isFoodbank ? "Pickups" : "Postings", icon: <HomeRoundedIcon /> },
+    { to: "/main", label: HOME_LABELS[roleOf(user)], icon: <HomeRoundedIcon /> },
     { to: "/impact", label: "Impact", icon: <InsightsRoundedIcon /> },
     ...(user.isAdmin ? [{ to: "/admin", label: "Admin", icon: <AdminPanelSettingsRoundedIcon /> }] : []),
     { to: "/view_profile", label: "Profile", icon: <PersonRoundedIcon /> },

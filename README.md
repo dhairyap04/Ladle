@@ -2,7 +2,7 @@
 
 # Ladle
 
-Ladle connects restaurants that have surplus food with food banks that can collect it. Restaurants post what they have and when it can be picked up; food banks see nearby postings on a list and a map, claim one, and mark it collected.
+Ladle connects restaurants that have surplus food with food banks that can collect it. Restaurants post what they have and when it can be picked up; food banks see nearby postings on a list and a map, claim one, and collect it themselves or ask a volunteer driver to bring it.
 
 Ladle is designed, built and maintained by **Dhairya Prajapati**. Development started in **February 2026** and is ongoing. (It was called MealDrop until November 2026.)
 
@@ -25,6 +25,16 @@ In the United States, an estimated **30 to 40 percent** of the food supply is wa
 - Describe what you can accept (food types, fridge/freezer, maximum weight, receiving days and hours, travel radius). Postings are labelled as a good fit or say why not, and you're **alerted** when suitable food is posted nearby.
 - Claim a pickup (only one food bank can claim each posting), ask the restaurant questions first, and mark it picked up once collected.
 - Get **verified** by adding your charitable registration number. Restaurants see a verified badge when you claim their food.
+- No vehicle? **Request a volunteer driver** for any pickup you've claimed.
+- Can't make it after all? Release the claim so another food bank can take it.
+
+**For volunteer drivers**
+- Record your vehicle, how much you can carry, whether you have a cooler, your area and when you're free.
+- Get alerted to deliveries that suit you, accept one in a tap, and mark it collected and delivered. You see the restaurant's and food bank's contact details once you accept.
+
+**Reliability**
+- After the pickup window, restaurants confirm the food was collected or report a no-show (which the food bank can dispute for 48 hours).
+- Everyone on a completed pickup can rate each other. Food banks and drivers build a track record (pickups completed, missed, released late, average rating), which restaurants see when deciding who to work with.
 
 **For everyone**
 - Notifications under the bell, optional browser alerts, and optional email.
@@ -32,7 +42,7 @@ In the United States, an estimated **30 to 40 percent** of the food supply is wa
 - Postings expire automatically when their pickup window ends.
 
 **For admins**
-- An admin console to review food bank verifications (with a link to the CRA charities listing) and see activity across the platform.
+- An admin console to review food bank verifications (with a link to the CRA charities listing), see activity across the platform, and review accounts flagged for repeated no-shows or a low pickup rate.
 
 ## Screenshots
 
@@ -71,8 +81,8 @@ The design direction, competitor research and colour palette are documented in [
 
 ## Roadmap
 
-- Volunteer drivers who can collect food on a food bank's behalf, with dispatch.
-- Reliability signals: no-show tracking and ratings.
 - Web push notifications for the installed app.
+- Route planning for drivers with more than one delivery.
+- Partner programs: food banks that bring their own volunteer drivers.
 
-See [AUDIT_REPORT.md](AUDIT_REPORT.md) for the full list of planned improvements.
+See [AUDIT_REPORT.md](AUDIT_REPORT.md) for the original audit, [docs/DESIGN.md](docs/DESIGN.md) for the design direction and [docs/UI_REVIEW.md](docs/UI_REVIEW.md) for the latest UI and accessibility review.

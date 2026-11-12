@@ -12,16 +12,21 @@ import {
 } from '@mui/material';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import VolunteerActivismRoundedIcon from '@mui/icons-material/VolunteerActivismRounded';
+import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import api, { errorMessage } from "../../api";
 import AppHeader from "../Shared/AppHeader";
+import usePageTitle from "../../usePageTitle";
 
 const ROLES = [
-    { value: false, key: "restaurant", icon: StorefrontRoundedIcon, title: "Restaurant", text: "I have surplus food to donate" },
-    { value: true, key: "foodbank", icon: VolunteerActivismRoundedIcon, title: "Food bank", text: "We collect food for people in need" },
+    { value: "restaurant", icon: StorefrontRoundedIcon, title: "Restaurant", text: "I have surplus food to donate" },
+    { value: "foodbank", icon: VolunteerActivismRoundedIcon, title: "Food bank", text: "We collect food for people in need" },
+    { value: "driver", icon: LocalShippingRoundedIcon, title: "Volunteer driver", text: "I can deliver food for food banks" },
 ];
 
-// One of the two "who are you?" cards on the sign-up form.
+const NAME_LABELS = { restaurant: "Restaurant name", foodbank: "Food bank name", driver: "Your name" };
+
+// One of the "who are you?" cards on the sign-up form.
 const RoleCard = ({ role, selected, onSelect }) => {
     const Icon = role.icon;
     return (
@@ -56,9 +61,9 @@ const RoleCard = ({ role, selected, onSelect }) => {
     );
 };
 
-function AuthForm({ history, initialLogin, initialFoodbank }) {
+function AuthForm({ history, initialLogin, initialRole }) {
     const [isLogin, setIsLogin] = useState(initialLogin);
-    const [isFoodbank, setFoodbank] = useState(initialFoodbank);
+    const [role, setRole] = useState(initialRole);
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
@@ -69,8 +74,8 @@ function AuthForm({ history, initialLogin, initialFoodbank }) {
         const password = data.get('password') || "";
         const name = (data.get('name') || "").trim();
 
-        if (!isLogin && isFoodbank === null) {
-            setError("Please choose whether you're a restaurant or a food bank.");
+        if (!isLogin && role === null) {
+            setError("Please choose whether you're a restaurant, a food bank or a volunteer driver.");
             return;
         }
         if (!email || !password || (!isLogin && !name)) {
@@ -89,7 +94,7 @@ function AuthForm({ history, initialLogin, initialFoodbank }) {
                 await api.post("user/login", { email, password });
                 history.push("/main");
             } else {
-                await api.post("user/create", { email, password, name, isFoodbank });
+                await api.post("user/create", { email, password, name, role });
                 history.push("/view_profile");
             }
         } catch (e) {
@@ -118,13 +123,13 @@ function AuthForm({ history, initialLogin, initialFoodbank }) {
                 {!isLogin && (
                     <>
                         <Typography id="role-label" sx={{ fontWeight: 700, mb: 1 }}>I&apos;m signing up as a…</Typography>
-                        <Box role="radiogroup" aria-labelledby="role-label" sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5, mb: 1 }}>
-                            {ROLES.map((role) => (
+                        <Box role="radiogroup" aria-labelledby="role-label" sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 1.5, mb: 1 }}>
+                            {ROLES.map((option) => (
                                 <RoleCard
-                                    key={role.key}
-                                    role={role}
-                                    selected={isFoodbank === role.value}
-                                    onSelect={() => setFoodbank(role.value)}
+                                    key={option.value}
+                                    role={option}
+                                    selected={role === option.value}
+                                    onSelect={() => setRole(option.value)}
                                 />
                             ))}
                         </Box>
@@ -133,9 +138,9 @@ function AuthForm({ history, initialLogin, initialFoodbank }) {
                             required
                             fullWidth
                             id="name"
-                            label={isFoodbank ? "Food bank name" : "Restaurant name"}
+                            label={NAME_LABELS[role] || "Name"}
                             name="name"
-                            autoComplete="organization"
+                            autoComplete={role === "driver" ? "name" : "organization"}
                         />
                     </>
                 )}
@@ -176,8 +181,9 @@ function AuthForm({ history, initialLogin, initialFoodbank }) {
 const AuthPage = () => {
     const history = useHistory();
     const params = new URLSearchParams(useLocation().search);
-    const role = params.get("role");
-    const initialFoodbank = role === "foodbank" ? true : role === "restaurant" ? false : null;
+    usePageTitle(params.get("mode") === "login" ? "Log in" : "Join");
+    const requested = params.get("role");
+    const initialRole = ["restaurant", "foodbank", "driver"].includes(requested) ? requested : null;
 
     useEffect(() => {
         // Already signed in: skip the form.
@@ -194,7 +200,7 @@ const AuthPage = () => {
                     key={params.toString()} // header links change the query; start the form fresh
                     history={history}
                     initialLogin={params.get("mode") === "login"}
-                    initialFoodbank={initialFoodbank}
+                    initialRole={initialRole}
                 />
             </Container>
         </>

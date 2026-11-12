@@ -2,8 +2,10 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Box, Button, Container, Paper, Typography } from '@mui/material';
 import AppHeader from '../Shared/AppHeader';
 import useAuthUser from '../../useAuthUser';
+import usePageTitle from "../../usePageTitle";
 
 const ConfirmOrder = () => {
+    usePageTitle("Pickup reserved");
     const user = useAuthUser();
     return (
         <>

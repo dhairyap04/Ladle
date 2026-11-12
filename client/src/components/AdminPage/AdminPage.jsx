@@ -23,6 +23,10 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import AppHeader from "../Shared/AppHeader";
 import api, { errorMessage } from "../../api";
 import useAuthUser from "../../useAuthUser";
+import { ROLE_LABELS, roleOf } from "../../roles";
+import ReliabilityBadge from "../Shared/ReliabilityBadge";
+import { plural } from "../../plural";
+import usePageTitle from "../../usePageTitle";
 
 const STATUS_CHIP = {
   unverified: { label: "Unverified", sx: { bgcolor: "#EEECE8", color: "#4F5753" } },
@@ -45,7 +49,7 @@ const UserRow = ({ user, onDecide }) => (
       <Box sx={{ minWidth: 0 }}>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap" }}>
           <Typography sx={{ fontWeight: 800 }}>{user.name}</Typography>
-          <Chip size="small" label={user.isFoodbank ? "Food bank" : "Restaurant"} variant="outlined" />
+          <Chip size="small" label={ROLE_LABELS[roleOf(user)]} variant="outlined" />
           {user.isFoodbank && <Chip size="small" {...STATUS_CHIP[user.verificationStatus || "unverified"]} />}
           {user.isAdmin && <Chip size="small" label="Admin" color="secondary" />}
         </Stack>
@@ -78,6 +82,11 @@ const UserRow = ({ user, onDecide }) => (
           </Typography>
         )}
         {user.verificationNote && <Typography variant="body2" color="text.secondary">Note: {user.verificationNote}</Typography>}
+        {user.reliability && roleOf(user) !== "restaurant" && (
+          <Box sx={{ my: 0.75 }}>
+            <ReliabilityBadge summary={user.reliability} noun={roleOf(user) === "driver" ? "delivery" : "pickup"} showFlag />
+          </Box>
+        )}
         <Typography variant="caption" color="text.secondary">
           Joined {new Date(user.createdAt).toLocaleDateString()}
           {user.verificationRequestedAt ? ` · requested ${new Date(user.verificationRequestedAt).toLocaleDateString()}` : ""}
@@ -101,6 +110,7 @@ const UserRow = ({ user, onDecide }) => (
 );
 
 const AdminPage = () => {
+  usePageTitle("Admin");
   const user = useAuthUser();
   const history = useHistory();
   const [tab, setTab] = useState("pending");
@@ -118,7 +128,11 @@ const AdminPage = () => {
 
   const load = useCallback(async () => {
     try {
-      const params = tab === "pending" ? { verification: "pending" } : { q, role: tab === "all" ? undefined : tab };
+      const params = tab === "pending"
+        ? { verification: "pending" }
+        : tab === "flagged"
+          ? { flagged: "1", q }
+          : { q, role: tab === "all" ? undefined : tab };
       const [o, u] = await Promise.all([api.get("admin/overview"), api.get("admin/users", { params })]);
       setOverview(o.data);
       setUsers(u.data);
@@ -159,12 +173,13 @@ const AdminPage = () => {
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         {overview && (
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(5, 1fr)" }, gap: 2, mb: 3 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(6, 1fr)" }, gap: 2, mb: 3 }}>
             <Stat value={overview.restaurants} label="Restaurants" />
+            <Stat value={overview.drivers || 0} label="Volunteer drivers" />
             <Stat value={overview.foodBanks} label={`Food banks (${overview.verification.verified || 0} verified)`} />
             <Stat value={pending} label="Waiting for verification" />
             <Stat value={overview.postings.open || 0} label="Open postings" />
-            <Stat value={`${overview.kgRescued} kg`} label={`Rescued (${overview.postings.picked_up || 0} pickups)`} />
+            <Stat value={`${overview.kgRescued} kg`} label={`Rescued in ${plural(overview.postings.picked_up || 0, "pickup")}`} />
           </Box>
         )}
 
@@ -172,6 +187,8 @@ const AdminPage = () => {
           <Tab value="pending" label={`Verification queue${pending ? ` (${pending})` : ""}`} />
           <Tab value="foodbank" label="Food banks" />
           <Tab value="restaurant" label="Restaurants" />
+          <Tab value="driver" label="Drivers" />
+          <Tab value="flagged" label={`Needs review${overview && overview.flagged ? ` (${overview.flagged})` : ""}`} />
           <Tab value="all" label="Everyone" />
         </Tabs>
 
@@ -190,7 +207,9 @@ const AdminPage = () => {
         <Stack spacing={1.5}>
           {users && users.length === 0 && (
             <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
-              {tab === "pending" ? "No food banks are waiting for verification." : "No accounts match."}
+              {tab === "pending"
+                ? "No food banks are waiting for verification."
+                : tab === "flagged" ? "No accounts have repeated no-shows or a low pickup rate." : "No accounts match."}
             </Typography>
           )}
           {users && users.map((u) => <UserRow key={u.id} user={u} onDecide={(target, decision) => setDeciding({ user: target, decision })} />)}

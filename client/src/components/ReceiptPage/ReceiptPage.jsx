@@ -9,6 +9,7 @@ import Logo from "../Shared/Logo";
 import api, { errorMessage } from "../../api";
 import useAuthUser from "../../useAuthUser";
 import { FOOD_TYPES, STORAGE, allergenSummary } from "../../food";
+import usePageTitle from "../../usePageTitle";
 
 const Party = ({ title, party, extra }) => (
   <Box>
@@ -30,6 +31,7 @@ const Row = ({ label, children }) => (
 
 // A printable record of one completed donation.
 const ReceiptPage = () => {
+  usePageTitle("Donation record");
   const { id } = useParams();
   const user = useAuthUser();
   const [receipt, setReceipt] = useState(null);

@@ -31,4 +31,10 @@ const ALLERGENS = [
 // How the food has to be kept until it's collected.
 const STORAGE = ["ambient", "refrigerated", "frozen", "hot"];
 
-module.exports = { FOOD_TYPES, ALLERGENS, STORAGE };
+// Account types. isFoodbank is kept on users for older code and data.
+const ROLES = ["restaurant", "foodbank", "driver"];
+
+// What a volunteer driver drives, and roughly how much it carries.
+const VEHICLES = ["bike", "car", "suv_van", "truck"];
+
+module.exports = { FOOD_TYPES, ALLERGENS, STORAGE, ROLES, VEHICLES };

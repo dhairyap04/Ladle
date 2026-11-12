@@ -8,6 +8,11 @@ const { geocodeToPoint, distanceKm } = require("../geocode");
 const { notify } = require("../notify");
 const { formatWindow } = require("../format");
 const { generateRecurringPostings } = require("../recurring");
+const reliability = require("../reliability");
+const { cancelForPosting } = require("./DeliveriesController");
+
+const DISPUTE_HOURS = 48; // a food bank can contest a no-show this long after the window
+const UNCONFIRMED_AFTER_HOURS = 72;
 
 const { requireVerifiedToClaim } = require("../config");
 
@@ -192,6 +197,11 @@ const expireStalePostings = () =>
 const refreshPostings = async () => {
   await generateRecurringPostings({ onCreated: (posting) => alertFoodBanks(posting) });
   await expireStalePostings();
+  // Claims nobody resolved: close them without counting against anyone.
+  await mongoFoodPostings.updateMany(
+    { status: "claimed", pickupEndsAt: { $lte: new Date(Date.now() - UNCONFIRMED_AFTER_HOURS * 3600e3) } },
+    { $set: { status: "unconfirmed" } }
+  );
 };
 
 const notFound = (res) => res.status(404).json({ msg: "Posting not found." });
@@ -366,12 +376,18 @@ const markPickedUp = async (req, res) => {
   if (!posting.claimedBy || String(posting.claimedBy) !== req.user.id) {
     return res.status(403).json({ msg: "Only the food bank that claimed this posting can mark it picked up." });
   }
-  if (posting.status !== "claimed") {
+  // A food bank can contest a no-show by confirming it did collect the food.
+  const disputing = posting.status === "no_show" &&
+    posting.pickupEndsAt && Date.now() - posting.pickupEndsAt < DISPUTE_HOURS * 3600e3;
+  if (posting.status !== "claimed" && !disputing) {
     return res.status(409).json({ msg: "Only claimed postings can be marked picked up." });
   }
   posting.status = "picked_up";
   posting.pickedUpAt = new Date();
   await posting.save();
+  if (disputing) await reliability.unrecord(posting.claimedBy, "no_show", { postingId: posting._id });
+  await reliability.record(posting.claimedBy, "pickup_completed", { postingId: posting._id });
+  await cancelForPosting(posting._id, `${req.user.name} collected the food themselves, so no driver is needed.`);
   if (posting.donorId) {
     await notify([posting.donorId], {
       type: "posting_picked_up",

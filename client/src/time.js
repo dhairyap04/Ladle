@@ -43,6 +43,8 @@ export const STATUS_LABELS = {
   picked_up: "Picked up",
   expired: "Expired",
   cancelled: "Withdrawn",
+  no_show: "Not picked up",
+  unconfirmed: "Unconfirmed",
 };
 
 // "2026-11-10" -> "Today", "Tomorrow", or "Thu, Nov 12" (with the year if it isn't this year).

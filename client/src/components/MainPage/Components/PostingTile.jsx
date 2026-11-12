@@ -8,8 +8,10 @@ import StatusChip from "../../Shared/StatusChip";
 import { formatPickupWindow } from "../../../time";
 import { FIT_PROBLEMS, FOOD_TYPES, STORAGE, photoUrl } from "../../../food";
 
-// A posting in a list. `showStatus` adds its status chip (used for "Your postings").
-const PostingTile = ({ postingData: posting, showStatus }) => {
+// A posting in a list. `showStatus` adds its status chip (used for "Your
+// postings"); `foodTitle` titles it by the food instead of the restaurant,
+// for a restaurant's own list where every card has the same name.
+const PostingTile = ({ postingData: posting, showStatus, foodTitle }) => {
   const status = posting.status || "open";
   const inactive = status === "expired" || status === "cancelled";
   // e.g. "Bread & bakery, Dairy & eggs · 3 trays · ~4 kg · Refrigerated"
@@ -38,7 +40,7 @@ const PostingTile = ({ postingData: posting, showStatus }) => {
                 height: 72,
                 borderRadius: 3,
                 bgcolor: "#FDEEDC",
-                color: "#B85A08",
+                color: "#A34F06",
                 display: "grid",
                 placeItems: "center",
                 flexShrink: 0,
@@ -50,7 +52,9 @@ const PostingTile = ({ postingData: posting, showStatus }) => {
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
               <Typography component="h3" sx={{ fontWeight: 800, fontSize: "1.05rem" }}>
-                {posting.fromRestaurantName}
+                {foodTitle
+                  ? posting.quantity || (posting.foodTypes || []).map((t) => FOOD_TYPES[t]).join(", ") || "Surplus food"
+                  : posting.fromRestaurantName}
               </Typography>
               {showStatus && <StatusChip status={status} />}
               {posting.fitProblems && (

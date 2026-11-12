@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
-import { Alert, Box, Button, Container, FormControlLabel, InputAdornment, Paper, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Container, FormControlLabel, InputAdornment, MenuItem, Paper, Skeleton, Snackbar, Stack, Switch, TextField, Typography } from "@mui/material";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
 import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
+import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
+import { ROLE_LABELS, VEHICLES, roleOf } from "../../roles";
+import ReliabilityBadge from "../Shared/ReliabilityBadge";
 
 import AppHeader from "../Shared/AppHeader";
 import ChipPicker from "../Shared/ChipPicker";
 import api, { errorMessage } from "../../api";
 import { FOOD_TYPES, WEEKDAYS } from "../../food";
+import usePageTitle from "../../usePageTitle";
 
 // openHours is stored as "HH:MM-HH:MM".
 const splitHours = (openHours) => {
@@ -33,6 +37,7 @@ const toForm = (user) => ({
   serviceRadiusKm: user.serviceRadiusKm ? String(user.serviceRadiusKm) : "",
   notifyByEmail: user.notifyByEmail !== false,
   notifyNewPostings: user.notifyNewPostings !== false,
+  vehicle: user.vehicle || "",
 });
 
 const TEXT_FIELDS = ["name", "phoneNumber", "charitableTaxNum", "address", "website"];
@@ -95,11 +100,14 @@ const Section = ({ title, hint, children }) => (
 );
 
 const ProfilePage = () => {
+  usePageTitle("Your profile");
   const history = useHistory();
   const [user, setUser] = useState(undefined); // for the header
+  const [track, setTrack] = useState(null); // own reliability summary
   const [values, setValues] = useState(null);
   const [saved, setSaved] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const loading = values === null;
 
@@ -108,6 +116,7 @@ const ProfilePage = () => {
       .then((res) => {
         const form = toForm(res.data.user);
         setUser(res.data.user);
+        setTrack(res.data.reliability || null);
         setValues(form);
         setSaved(form);
       })
@@ -142,34 +151,43 @@ const ProfilePage = () => {
     if (values.openTime !== saved.openTime || values.closeTime !== saved.closeTime) {
       changes.openHours = values.openTime || values.closeTime ? `${values.openTime}-${values.closeTime}` : "";
     }
-    ["notifyByEmail", ...(user.isFoodbank ? ["notifyNewPostings"] : [])].forEach((f) => {
+    ["notifyByEmail", ...(role !== "restaurant" ? ["notifyNewPostings"] : [])].forEach((f) => {
       if (values[f] !== saved[f]) changes[f] = values[f];
     });
-    if (user.isFoodbank) {
-      FOODBANK_FIELDS.forEach((f) => {
+    if (isDriver && values.vehicle !== saved.vehicle) changes.vehicle = values.vehicle;
+    if (role !== "restaurant") {
+      FOODBANK_FIELDS.filter((f) => isFoodbank || f !== "acceptedFoodTypes").forEach((f) => {
         if (JSON.stringify(values[f]) !== JSON.stringify(saved[f])) {
           changes[f] = f === "receivingDays" ? values[f].map(Number) : values[f];
         }
       });
     }
     if (Object.keys(changes).length === 0) {
-      history.push("/main");
+      setNotice("There's nothing new to save.");
       return;
     }
 
     setSaving(true);
     setError("");
     try {
-      await api.post("user/update", changes);
-      history.push("/main");
+      const res = await api.post("user/update", changes);
+      // Stay on the page so the change is visible; resync from what was saved.
+      const form = toForm(res.data.user);
+      setUser(res.data.user);
+      setValues(form);
+      setSaved(form);
+      setNotice("Profile saved.");
     } catch (err) {
-      setSaving(false);
       setError(errorMessage(err));
+    } finally {
+      setSaving(false);
     }
   };
 
-  const isFoodbank = user && user.isFoodbank;
-  const RoleIcon = isFoodbank ? VolunteerActivismRoundedIcon : StorefrontRoundedIcon;
+  const role = roleOf(user);
+  const isFoodbank = role === "foodbank";
+  const isDriver = role === "driver";
+  const RoleIcon = isDriver ? LocalShippingRoundedIcon : isFoodbank ? VolunteerActivismRoundedIcon : StorefrontRoundedIcon;
   const twoCol = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 };
 
   return (
@@ -183,38 +201,53 @@ const ProfilePage = () => {
           <Box>
             <Typography component="h1" variant="h4" sx={{ color: "primary.dark" }}>Your profile</Typography>
             <Typography color="text.secondary">
-              {loading ? "Loading…" : isFoodbank ? "Food bank account" : "Restaurant account"}
+              {loading ? "Loading…" : `${ROLE_LABELS[role]} account`}
             </Typography>
           </Box>
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {track && role !== "restaurant" && (
+          <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 4, mb: 3 }}>
+            <Typography sx={{ fontWeight: 800 }}>Your track record</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              What restaurants{isDriver ? " and food banks" : ""} see about you, from the last 6 months.
+              Releasing within 2 hours of a pickup or missing one lowers it.
+            </Typography>
+            <ReliabilityBadge summary={track} noun={isDriver ? "delivery" : "pickup"} />
+          </Paper>
+        )}
         {isFoodbank && (
           <VerificationCard user={user} onChange={setUser} dirty={JSON.stringify(values) !== JSON.stringify(saved)} />
         )}
 
+        {/* Fields render once the profile has loaded, so labels sit above filled values. */}
+        {loading && !error && <Skeleton variant="rounded" height={480} sx={{ borderRadius: 5 }} />}
+        {!loading && (
         <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5 }}>
-          <Section title="Organization">
+          <Section title={isDriver ? "About you" : "Organization"} hint={isDriver ? "Your name and phone number are shared with the restaurant and food bank once you accept a delivery." : undefined}>
             <Box sx={twoCol}>
               {field("name", "Name", { required: true })}
               {field("phoneNumber", "Phone number", { type: "tel", autoComplete: "tel" })}
-              {field("website", "Website", { type: "url", autoComplete: "url" })}
+              {!isDriver && field("website", "Website", { type: "url", autoComplete: "url" })}
               {isFoodbank && field("charitableTaxNum", "Charitable registration #", { placeholder: "123456789RR0001" })}
             </Box>
           </Section>
 
           <Section
-            title={isFoodbank ? "Location and receiving hours" : "Location and hours"}
-            hint={isFoodbank ? "When your team can collect or receive food." : undefined}
+            title={isDriver ? "Where and when you can drive" : isFoodbank ? "Location and receiving hours" : "Location and hours"}
+            hint={isDriver
+              ? "Your home area is only used to find deliveries near you; it isn't shown to anyone."
+              : isFoodbank ? "When your team can collect or receive food." : undefined}
           >
             <Box sx={twoCol}>
-              {field("address", "Address", { autoComplete: "street-address", sx: { gridColumn: { sm: "1 / -1" } } })}
-              {field("openTime", isFoodbank ? "From" : "Opens at", { type: "time", InputLabelProps: { shrink: true } })}
-              {field("closeTime", isFoodbank ? "Until" : "Closes at", { type: "time", InputLabelProps: { shrink: true } })}
+              {field("address", isDriver ? "Home area (street or neighbourhood)" : "Address", { autoComplete: "street-address", sx: { gridColumn: { sm: "1 / -1" } } })}
+              {field("openTime", isFoodbank || isDriver ? "From" : "Opens at", { type: "time", InputLabelProps: { shrink: true } })}
+              {field("closeTime", isFoodbank || isDriver ? "Until" : "Closes at", { type: "time", InputLabelProps: { shrink: true } })}
             </Box>
-            {isFoodbank && values && (
+            {(isFoodbank || isDriver) && values && (
               <>
-                <Typography variant="body2" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>Days you can collect (leave empty for any day)</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>{isDriver ? "Days you can drive" : "Days you can collect"} (leave empty for any day)</Typography>
                 <ChipPicker label="Receiving days" options={WEEKDAYS} value={values.receivingDays} onChange={(v) => set("receivingDays", v)} />
               </>
             )}
@@ -243,30 +276,62 @@ const ProfilePage = () => {
             </Section>
           )}
 
+          {isDriver && values && (
+            <Section title="Your vehicle" hint="Deliveries you can't carry or keep cold are marked, and you won't be alerted about them.">
+              <Box sx={twoCol}>
+                {field("vehicle", "Vehicle", { select: true, children: [<MenuItem key="" value="">Not set</MenuItem>, ...Object.entries(VEHICLES).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)] })}
+                {field("maxPickupKg", "Most you can carry", {
+                  type: "number",
+                  inputProps: { min: 1 },
+                  InputProps: { endAdornment: <InputAdornment position="end">kg</InputAdornment> },
+                })}
+                {field("serviceRadiusKm", "How far you'll drive to a pickup", {
+                  type: "number",
+                  inputProps: { min: 1, max: 200 },
+                  InputProps: { endAdornment: <InputAdornment position="end">km</InputAdornment> },
+                })}
+              </Box>
+              <FormControlLabel
+                sx={{ mt: 1 }}
+                control={<Switch checked={values.coldStorage.length > 0} onChange={(e) => set("coldStorage", e.target.checked ? ["refrigerated"] : [])} />}
+                label="I have a cooler for chilled or frozen food"
+              />
+            </Section>
+          )}
+
           {values && (
             <Section title="Alerts" hint="Alerts always appear under the bell at the top of the page.">
               <Stack>
-                {isFoodbank && (
+                {(isFoodbank || isDriver) && (
                   <FormControlLabel
                     control={<Switch checked={values.notifyNewPostings} onChange={(e) => set("notifyNewPostings", e.target.checked)} />}
-                    label="Alert us when food we can accept is posted nearby"
+                    label={isDriver ? "Alert me when a delivery I can do is needed nearby" : "Alert us when food we can accept is posted nearby"}
                   />
                 )}
                 <FormControlLabel
                   control={<Switch checked={values.notifyByEmail} onChange={(e) => set("notifyByEmail", e.target.checked)} />}
-                  label={isFoodbank ? "Also send alerts by email" : "Email me when my food is claimed or picked up, and when I get a message"}
+                  label={isFoodbank || isDriver ? "Also send alerts by email" : "Email me when my food is claimed or picked up, and when I get a message"}
                 />
               </Stack>
             </Section>
           )}
 
           <Stack direction="row" spacing={1.5} justifyContent="flex-end" sx={{ mt: 4 }}>
-            <Button onClick={() => history.push("/main")} color="inherit">Cancel</Button>
+            <Button onClick={() => history.push("/main")} color="inherit">Back</Button>
             <Button onClick={save} disabled={loading || saving} variant="contained" size="large">
-              {saving ? "Saving…" : "Save profile"}
+              {saving ? "Saving…" : "Save changes"}
             </Button>
           </Stack>
         </Paper>
+        )}
+        <Snackbar
+          open={Boolean(notice)}
+          autoHideDuration={3000}
+          onClose={() => setNotice("")}
+          message={notice}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          sx={{ bottom: { xs: 80, sm: 24 } }}
+        />
       </Container>
     </>
   );
