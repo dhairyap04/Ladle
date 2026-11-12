@@ -62,6 +62,9 @@ const ScheduleList = ({ schedules, onEdit, onChanged }) => {
                   {formatPickupTime(s.pickupTimeBegin)} – {formatPickupTime(s.pickupTimeEnd)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" noWrap>
+                  {s.pickupLocationName || s.fromRestaurantAddress}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" noWrap>
                   {[(s.foodTypes || []).map((t) => FOOD_TYPES[t]).join(", "), s.quantity].filter(Boolean).join(" · ") || s.fromRestaurantAddress}
                 </Typography>
                 <Stack direction="row" spacing={1} sx={{ mt: 1 }}>

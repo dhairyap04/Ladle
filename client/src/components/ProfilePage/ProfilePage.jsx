@@ -13,6 +13,7 @@ import AppHeader from "../Shared/AppHeader";
 import ChipPicker from "../Shared/ChipPicker";
 import api, { errorMessage } from "../../api";
 import { InstallButton } from "../Shared/InstallGuide";
+import { LocationsManager } from "../Shared/PickupLocations";
 import { forgetCachedUser } from "../../useAuthUser";
 import { FOOD_TYPES, WEEKDAYS } from "../../food";
 import usePageTitle from "../../usePageTitle";
@@ -330,6 +331,7 @@ const ProfilePage = () => {
   const role = roleOf(user);
   const isFoodbank = role === "foodbank";
   const isDriver = role === "driver";
+  const isRestaurant = role === "restaurant";
   const RoleIcon = isDriver ? LocalShippingRoundedIcon : isFoodbank ? VolunteerActivismRoundedIcon : StorefrontRoundedIcon;
   const twoCol = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 };
 
@@ -378,13 +380,13 @@ const ProfilePage = () => {
           </Section>
 
           <Section
-            title={isDriver ? "Where and when you can drive" : isFoodbank ? "Location and receiving hours" : "Location and hours"}
+            title={isDriver ? "Where and when you can drive" : isFoodbank ? "Location and receiving hours" : "Opening hours"}
             hint={isDriver
               ? "Your home area is only used to find deliveries near you; it isn't shown to anyone."
               : isFoodbank ? "When your team can collect or receive food." : undefined}
           >
             <Box sx={twoCol}>
-              {field("address", isDriver ? "Home area (street or neighbourhood)" : "Address", { autoComplete: "street-address", sx: { gridColumn: { sm: "1 / -1" } } })}
+              {!isRestaurant && field("address", isDriver ? "Home area (street or neighbourhood)" : "Address", { autoComplete: "street-address", sx: { gridColumn: { sm: "1 / -1" } } })}
               {field("openTime", isFoodbank || isDriver ? "From" : "Opens at", { type: "time", InputLabelProps: { shrink: true } })}
               {field("closeTime", isFoodbank || isDriver ? "Until" : "Closes at", { type: "time", InputLabelProps: { shrink: true } })}
             </Box>
@@ -395,6 +397,15 @@ const ProfilePage = () => {
               </>
             )}
           </Section>
+
+          {isRestaurant && user && (
+            <Section
+              title="Pickup locations"
+              hint="Where food banks and drivers collect from. Your main location is filled in when you post food; with more than one, you pick each time. Changes here save straight away."
+            >
+              <LocationsManager user={user} onChange={setUser} />
+            </Section>
+          )}
 
           {isFoodbank && values && (
             <Section title="What you can accept" hint="Postings that don't match are labelled, so you can skip food you can't take or store.">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -22,7 +22,7 @@ import { useTheme } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AddAPhotoRoundedIcon from "@mui/icons-material/AddAPhotoRounded";
 
-import AddressContainer from "../../Shared/AddressContainer";
+import { LocationPicker, initialPickup, pickupBody, useMyLocations } from "../../Shared/PickupLocations";
 import ChipPicker from "../../Shared/ChipPicker";
 import api, { errorMessage } from "../../../api";
 import { localDateTimeToIso, todayDateInput, toTimeInput } from "../../../time";
@@ -55,14 +55,14 @@ const CreatePostingModal = ({ posting, schedule, onClose, onSaved }) => {
   const [repeat, setRepeat] = useState(Boolean(schedule));
   const fullScreen = useMediaQuery(useTheme().breakpoints.down("sm"));
 
+  // Where: a saved location, or an address typed in (see PickupLocations).
+  const { data: locationData, error: locationError } = useMyLocations();
+  const [pickup, setPickup] = useState(null);
+  useEffect(() => {
+    if (locationData) setPickup((p) => p || initialPickup(locationData, source));
+  }, [locationData, source]);
+
   const [form, setForm] = useState({
-    // Create uses separate address parts; edit shows the saved address as one field.
-    street: "",
-    city: "",
-    province: "",
-    postalCode: "",
-    country: "",
-    address: source ? source.fromRestaurantAddress : "",
     pickupDate: (posting && posting.pickupDate) || (schedule && schedule.startsOn) || todayDateInput(),
     endsOn: (schedule && schedule.endsOn) || "",
     daysOfWeek: schedule ? schedule.daysOfWeek.map(String) : [String(new Date().getDay())],
@@ -84,18 +84,9 @@ const CreatePostingModal = ({ posting, schedule, onClose, onSaved }) => {
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
   const bind = (field) => ({ value: form[field], onChange: (e) => set(field, e.target.value) });
 
-  const fullAddress = () => {
-    if (isEdit) return form.address.trim();
-    return [form.street, form.city, form.province, form.postalCode, form.country]
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .join(", ");
-  };
-
   const validate = () => {
-    if (isEdit ? !form.address.trim() : !form.street.trim() || !form.city.trim()) {
-      return isEdit ? "Please enter the pickup address." : "Please enter the street address and city.";
-    }
+    const where = pickupBody(pickup);
+    if (where.error) return where.error;
     if (!form.pickupDate) return "Please enter the pickup date.";
     if (!form.pickupTimeBegin || !form.pickupTimeEnd) return "Please enter the pickup start and end times.";
     if (form.pickupTimeEnd <= form.pickupTimeBegin) return "The pickup end time must be after the start time.";
@@ -137,7 +128,7 @@ const CreatePostingModal = ({ posting, schedule, onClose, onSaved }) => {
     if (repeat) {
       const scheduleBody = {
         ...food,
-        fromRestaurantAddress: fullAddress(),
+        ...pickupBody(pickup),
         daysOfWeek: form.daysOfWeek.map(Number),
         pickupTimeBegin: form.pickupTimeBegin,
         pickupTimeEnd: form.pickupTimeEnd,
@@ -160,7 +151,7 @@ const CreatePostingModal = ({ posting, schedule, onClose, onSaved }) => {
     }
 
     const body = {
-      fromRestaurantAddress: fullAddress(),
+      ...pickupBody(pickup),
       pickupDate: form.pickupDate,
       pickupEndsAt: localDateTimeToIso(form.pickupDate, form.pickupTimeEnd),
       pickupTimeBegin: form.pickupTimeBegin,
@@ -264,10 +255,9 @@ const CreatePostingModal = ({ posting, schedule, onClose, onSaved }) => {
             )}
           </Section>}
 
-          <Section title="Where">
-            {isEdit
-              ? <TextField fullWidth required label="Pickup address" {...bind("address")} />
-              : <AddressContainer changeValue={set} />}
+          <Section title="Where" hint={locationData && locationData.locations.length ? "Add or change your locations in your profile." : undefined}>
+            {locationError && <Alert severity="warning" sx={{ mb: 1.5 }}>{locationError}</Alert>}
+            <LocationPicker data={locationData} value={pickup} onChange={setPickup} />
           </Section>
 
           <Section title="When">

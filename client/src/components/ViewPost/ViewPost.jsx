@@ -303,8 +303,13 @@ const ViewPost = () => {
           <DetailRow icon={ScheduleRoundedIcon} label="Pickup window">
             {post.pickupDate ? formatPickupWindow(post) : `Posted ${new Date(post.createdAt).toDateString()}`}
           </DetailRow>
-          <DetailRow icon={PlaceRoundedIcon} label="Pickup address">
+          <DetailRow icon={PlaceRoundedIcon} label={post.pickupLocationName ? `Pickup address · ${post.pickupLocationName}` : "Pickup address"}>
             {post.fromRestaurantAddress}
+            {post.pickupNotes && (
+              <Box component="span" sx={{ display: "block", mt: 0.5, fontWeight: 400, color: "text.secondary" }}>
+                Directions: {post.pickupNotes}
+              </Box>
+            )}
             {isClaimer && post.status === "claimed" && (
               <Box component="span" sx={{ display: "block", mt: 1 }}><DirectionsButton address={post.fromRestaurantAddress} /></Box>
             )}
