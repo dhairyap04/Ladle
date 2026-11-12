@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useHistory, useLocation } from "react-router-dom";
+import { Link as RouterLink, useHistory, useLocation } from "react-router-dom";
 import {
     Alert,
     Box,
     Button,
     ButtonBase,
     Container,
+    Link,
     Paper,
     TextField,
     Typography,
@@ -166,6 +167,13 @@ function AuthForm({ history, initialLogin, initialRole }) {
                     autoComplete={isLogin ? "current-password" : "new-password"}
                     helperText={isLogin ? undefined : "At least 8 characters"}
                 />
+                {isLogin && (
+                    <Box sx={{ textAlign: "right" }}>
+                        <Link component={RouterLink} to="/forgot-password" variant="body2" sx={{ fontWeight: 600 }}>
+                            Forgot your password?
+                        </Link>
+                    </Box>
+                )}
 
                 <Button type="submit" fullWidth variant="contained" size="large" disabled={submitting} sx={{ mt: 3 }}>
                     {submitting ? "Please wait…" : isLogin ? "Log in" : "Create account"}

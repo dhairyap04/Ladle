@@ -91,6 +91,54 @@ const VerificationCard = ({ user, onChange, dirty }) => {
   );
 };
 
+// Change password while logged in. Separate from the profile form so the
+// passwords are never sent with other changes.
+const PasswordSection = () => {
+  const [form, setForm] = useState({ current: "", next: "", confirm: "" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState("");
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setDone("");
+    if (form.next.length < 8) return setError("New password must be at least 8 characters.");
+    if (form.next !== form.confirm) return setError("The new passwords don't match.");
+    setBusy(true);
+    setError("");
+    try {
+      const res = await api.post("user/password/change", { currentPassword: form.current, newPassword: form.next });
+      setDone(res.data.msg);
+      setForm({ current: "", next: "", confirm: "" });
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+    return undefined;
+  };
+
+  return (
+    <Paper variant="outlined" component="form" onSubmit={submit} noValidate sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5, mt: 3 }}>
+      <Typography component="h2" variant="h6">Password</Typography>
+      <Typography variant="body2" color="text.secondary">Changing it signs out your other devices.</Typography>
+      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+      {done && <Alert severity="success" sx={{ mt: 2 }}>{done}</Alert>}
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2, mt: 2 }}>
+        <TextField type="password" label="Current password" autoComplete="current-password" value={form.current} onChange={set("current")} />
+        <TextField type="password" label="New password" autoComplete="new-password" value={form.next} onChange={set("next")} helperText="At least 8 characters" />
+        <TextField type="password" label="New password again" autoComplete="new-password" value={form.confirm} onChange={set("confirm")} />
+      </Box>
+      <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2 }}>
+        <Button type="submit" variant="outlined" disabled={busy || !form.current || !form.next}>
+          {busy ? "Changing…" : "Change password"}
+        </Button>
+      </Stack>
+    </Paper>
+  );
+};
+
 const Section = ({ title, hint, children }) => (
   <Box sx={{ "& + &": { mt: 4 } }}>
     <Typography component="h2" variant="h6">{title}</Typography>
@@ -324,6 +372,7 @@ const ProfilePage = () => {
           </Stack>
         </Paper>
         )}
+        {!loading && <PasswordSection />}
         <Snackbar
           open={Boolean(notice)}
           autoHideDuration={3000}

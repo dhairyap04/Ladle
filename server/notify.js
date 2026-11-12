@@ -45,4 +45,17 @@ async function notify(userIds, message) {
   }
 }
 
-module.exports = { notify, setTransport };
+// Sends one email directly (e.g. a password reset link). Resolves to true if it
+// was handed to the mail server, false when email isn't configured or failed.
+async function sendEmail(to, subject, text) {
+  if (!transport) return false;
+  try {
+    await transport.sendMail({ from: emailFrom, to, subject, text });
+    return true;
+  } catch (err) {
+    console.error("Email failed:", err.message);
+    return false;
+  }
+}
+
+module.exports = { notify, setTransport, sendEmail, appUrl };

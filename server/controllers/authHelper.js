@@ -20,6 +20,8 @@ const tokenPayload = (user) => ({
   isFoodbank: Boolean(user.isFoodbank),
   role: user.role || (user.isFoodbank ? "foodbank" : "restaurant"),
   isAdmin: Boolean(user.isAdmin),
+  // Bumped when the password changes, so older refresh tokens stop working.
+  sv: user.sessionVersion || user.sv || 0,
 });
 
 const generateAccessToken = (user) =>
@@ -50,8 +52,10 @@ const decode = (token, secret) => {
 };
 
 // Reads the user from the access token, falling back to the refresh token (and
-// issuing a new access token) when the access token has expired.
-const authenticate = (req, res) => {
+// issuing a new access token) when the access token has expired. A refresh
+// token from before the latest password change is refused, which signs out
+// other devices within one access-token lifetime (15 minutes).
+const authenticate = async (req, res) => {
   const { accessToken, refreshToken } = req.cookies || {};
 
   const fromAccess = accessToken && decode(accessToken, accessTokenSecret);
@@ -59,22 +63,35 @@ const authenticate = (req, res) => {
 
   const fromRefresh = refreshToken && decode(refreshToken, refreshTokenSecret);
   if (fromRefresh) {
+    const user = await require("../models/Users").findById(fromRefresh.id, "sessionVersion");
+    if (!user || (user.sessionVersion || 0) !== fromRefresh.sv) {
+      clearAuthCookies(res);
+      return null;
+    }
     res.cookie("accessToken", generateAccessToken(fromRefresh), cookieOptions(ACCESS_TOKEN_MS));
     return fromRefresh;
   }
   return null;
 };
 
-const verify = (req, res, next) => {
-  req.user = authenticate(req, res);
+const verify = async (req, res, next) => {
+  try {
+    req.user = await authenticate(req, res);
+  } catch (err) {
+    return next(err);
+  }
   if (req.user) return next();
   return res.status(401).json({ msg: "Please log in to continue." });
 };
 
 // Like verify, but lets guests through with req.user = null.
-const optionalAuth = (req, res, next) => {
-  req.user = authenticate(req, res);
-  next();
+const optionalAuth = async (req, res, next) => {
+  try {
+    req.user = await authenticate(req, res);
+    return next();
+  } catch (err) {
+    return next(err);
+  }
 };
 
 const requireDonor = (req, res, next) => {

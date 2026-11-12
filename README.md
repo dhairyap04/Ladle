@@ -37,6 +37,7 @@ In the United States, an estimated **30 to 40 percent** of the food supply is wa
 - Everyone on a completed pickup can rate each other. Food banks and drivers build a track record (pickups completed, missed, released late, average rating), which restaurants see when deciding who to work with.
 
 **For everyone**
+- Reset a forgotten password by email, or change it from your profile; either signs out your other devices.
 - Notifications under the bell, optional browser alerts, and optional email.
 - An **installable app (PWA)** with a phone-friendly bottom navigation bar and an offline notice.
 - Postings expire automatically when their pickup window ends.
@@ -64,11 +65,21 @@ The design direction, competitor research and colour palette are documented in [
 - **Access control:** only restaurants can create, edit or withdraw postings, only food banks can claim them, each user can only change their own data, and only admins can verify food banks.
 - **PWA:** web app manifest and a service worker (production builds only) that caches the app shell but never API data.
 
+## Try the demo
+
+Run the app with demo data, without a database or any keys:
+
+1. `cd server && npm install && npm run demo`. This starts the API on http://localhost:5055 with an in-memory database, seeded with demo accounts for every role. Data resets each time it starts.
+2. In another terminal: `cd client && npm install`, create `client/.env` with `REACT_APP_HOST_URL=http://localhost:5055/`, then `npm start` and open http://localhost:3000.
+3. Log in with any demo account listed at the top of [`server/scripts/demo.js`](server/scripts/demo.js): a restaurant, a second restaurant, a food bank, a volunteer driver and an admin.
+
+The demo uses a fake geocoder (addresses land around Edmonton) and prints emails to the terminal instead of sending them.
+
 ## Running locally
 
 1. **Server:** copy `server/.env.example` to `server/.env` and fill in `MONGO_URI`, `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`. The server won't start without them. Then run `cd server && npm install && npm start`.
-2. **Client:** create `client/.env` with `REACT_APP_HOST_URL=http://localhost:5000/` (keep the trailing slash) and `REACT_APP_GCP_KEY=<your Google Maps key>`. Then run `cd client && npm install && npm start` (Vite dev server on http://localhost:3000). `npm run build` writes the production bundle to `client/build/`, and `npm run lint` runs ESLint.
-3. **Tests:** `cd server && npm test` runs the API test suite against an in-memory MongoDB (no database or keys needed).
+2. **Client:** create `client/.env` with `REACT_APP_HOST_URL=http://localhost:5000/` (keep the trailing slash; on macOS, port 5000 is often taken by AirPlay Receiver, so set `PORT=5055` in `server/.env` and use that port here) and `REACT_APP_GCP_KEY=<your Google Maps key>`. Then run `cd client && npm install && npm start` (Vite dev server on http://localhost:3000). `npm run build` writes the production bundle to `client/build/`, and `npm run lint` runs ESLint.
+3. **Tests:** `cd server && npm test` runs the API test suite against an in-memory MongoDB (no database or keys needed). GitHub Actions runs the same tests, plus the client's lint and build, on every push and pull request (`.github/workflows/ci.yml`).
 
 ### Optional server settings
 
@@ -78,6 +89,9 @@ The design direction, competitor research and colour palette are documented in [
 | `SMTP_URL`, `EMAIL_FROM` | Emails notifications as well as showing them in the app. |
 | `ADMIN_EMAILS` | Comma-separated emails of accounts that get the admin console (applied when they sign up or log in). |
 | `REQUIRE_VERIFIED_TO_CLAIM` | `true` lets only verified food banks claim postings. Off by default. |
+| `TRUST_PROXY` | Behind a load balancer or proxy, the number of proxies (usually `1`), so login rate limits see real client addresses. |
+
+Password reset emails need `SMTP_URL`. Without it, in development the reset link is printed in the server's console.
 
 ## Roadmap
 
