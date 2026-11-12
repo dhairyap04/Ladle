@@ -43,3 +43,22 @@ export async function promptInstall() {
 
 export const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+
+// iPhone and iPad (iPadOS reports itself as a Mac, so check for touch too).
+// Safari there has no install prompt: people add the app from the Share menu.
+export const isIos = () => {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+};
+
+// Whether Ladle can be added to the home screen, and how.
+//   "prompt" - the browser's own install prompt (Chrome, Edge, Android)
+//   "ios"    - the Share menu steps on iPhone and iPad
+//   null     - already installed, or not possible here
+export const installMethod = () => {
+  if (typeof window === "undefined" || isStandalone()) return null;
+  if (canInstall()) return "prompt";
+  if (isIos()) return "ios";
+  return null;
+};

@@ -85,7 +85,7 @@ const changePassword = async (req, res) => {
   }
   await setPassword(user, newPassword);
   // Keep this device signed in with fresh tokens; other devices are signed out.
-  setAuthCookies(res, user);
+  setAuthCookies(res, user, req.user.rm);
   return res.status(200).json({ msg: "Password changed. Other devices have been signed out." });
 };
 

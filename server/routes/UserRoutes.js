@@ -5,6 +5,7 @@ const {
   updateUser,
   loginUser_handler,
   logoutUser_handler,
+  logoutOthers_handler,
   isAuthUser_handler,
   getUserInfo_handler,
   requestVerification,
@@ -39,6 +40,7 @@ userRouter.post("/delete", verify, changeLimit, asyncHandler(deleteAccount));
 // No verify: an expired session should still be able to clear its cookies.
 userRouter.post("/logout", logoutUser_handler);
 userRouter.get("/isAuth", verify, isAuthUser_handler);
+userRouter.post("/logout-others", verify, changeLimit, asyncHandler(logoutOthers_handler));
 userRouter.post("/update", verify, asyncHandler(updateUser));
 userRouter.get("/info", verify, asyncHandler(getUserInfo_handler));
 userRouter.get("/:id/reliability", verify, asyncHandler(getReliability));

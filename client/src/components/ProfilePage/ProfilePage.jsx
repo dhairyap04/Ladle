@@ -12,6 +12,7 @@ import ReliabilityBadge from "../Shared/ReliabilityBadge";
 import AppHeader from "../Shared/AppHeader";
 import ChipPicker from "../Shared/ChipPicker";
 import api, { errorMessage } from "../../api";
+import { InstallButton } from "../Shared/InstallGuide";
 import { FOOD_TYPES, WEEKDAYS } from "../../food";
 import usePageTitle from "../../usePageTitle";
 
@@ -135,6 +136,39 @@ const PasswordSection = () => {
         <Button type="submit" variant="outlined" disabled={busy || !form.current || !form.next}>
           {busy ? "Changing…" : "Change password"}
         </Button>
+      </Stack>
+    </Paper>
+  );
+};
+
+// Installing the app on this device, and signing out lost or shared devices.
+const DevicesSection = () => {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState(null); // { severity, text }
+
+  const signOutOthers = async () => {
+    setBusy(true);
+    try {
+      const res = await api.post("user/logout-others");
+      setMessage({ severity: "success", text: res.data.msg });
+    } catch (err) {
+      setMessage({ severity: "error", text: errorMessage(err) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5, mt: 3 }}>
+      <Typography component="h2" variant="h6">Your devices</Typography>
+      <Typography variant="body2" color="text.secondary">
+        Ladle works best added to the home screen of your phone or tablet: it opens full screen and can send notifications.
+        If a phone is lost, or someone else used a shared tablet, sign out everywhere else.
+      </Typography>
+      {message && <Alert severity={message.severity} sx={{ mt: 2 }}>{message.text}</Alert>}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 2 }}>
+        <InstallButton variant="outlined">Add Ladle to this device</InstallButton>
+        <Button onClick={signOutOthers} disabled={busy}>Sign out on all other devices</Button>
       </Stack>
     </Paper>
   );
@@ -432,6 +466,7 @@ const ProfilePage = () => {
         </Paper>
         )}
         {!loading && <PasswordSection />}
+        {!loading && <DevicesSection />}
         {!loading && <DataSection />}
         <Snackbar
           open={Boolean(notice)}
