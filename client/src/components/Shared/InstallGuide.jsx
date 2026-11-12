@@ -23,7 +23,14 @@ export function useInstallMethod() {
   return method;
 }
 
-const Step = ({ n, icon, children }) => (
+// An icon shown inline, next to the word it illustrates.
+const Ico = ({ icon: Icon }) => (
+  <Box component="span" sx={{ display: "inline-flex", verticalAlign: "text-bottom", mx: 0.25, color: "primary.main" }}>
+    <Icon fontSize="small" />
+  </Box>
+);
+
+const Step = ({ n, children }) => (
   <Stack direction="row" spacing={1.5} alignItems="flex-start">
     <Box
       sx={{
@@ -34,10 +41,7 @@ const Step = ({ n, icon, children }) => (
     >
       {n}
     </Box>
-    <Typography sx={{ pt: 0.25 }}>
-      {children}
-      {icon && <Box component="span" sx={{ display: "inline-flex", verticalAlign: "middle", ml: 0.75, color: "primary.main" }}>{icon}</Box>}
-    </Typography>
+    <Typography sx={{ pt: 0.25 }}>{children}</Typography>
   </Stack>
 );
 
@@ -47,14 +51,14 @@ export const IosInstallDialog = ({ open, onClose }) => (
     <DialogTitle>Add Ladle to your home screen</DialogTitle>
     <DialogContent>
       <Stack spacing={2}>
-        <Step n={1} icon={<IosShareRoundedIcon fontSize="small" />}>
-          Tap the <strong>Share</strong> button. In Safari it&apos;s in the toolbar at the bottom (on iPad, at the top). In Chrome it&apos;s at the top right.
+        <Step n={1}>
+          Tap the <strong>Share</strong> button <Ico icon={IosShareRoundedIcon} />. In Safari it&apos;s in the toolbar at the bottom (on iPad, at the top). In Chrome it&apos;s at the top right.
         </Step>
-        <Step n={2} icon={<AddBoxOutlinedIcon fontSize="small" />}>
-          Scroll down and choose <strong>Add to Home Screen</strong>.
+        <Step n={2}>
+          Scroll down and choose <strong>Add to Home Screen</strong> <Ico icon={AddBoxOutlinedIcon} />.
         </Step>
-        <Step n={3} icon={<CheckCircleRoundedIcon fontSize="small" />}>
-          Tap <strong>Add</strong>, then open Ladle from its icon on your home screen.
+        <Step n={3}>
+          Tap <strong>Add</strong> <Ico icon={CheckCircleRoundedIcon} />, then open Ladle from its icon on your home screen.
         </Step>
       </Stack>
       <Alert severity="info" sx={{ mt: 3 }}>

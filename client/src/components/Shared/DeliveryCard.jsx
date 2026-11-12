@@ -172,9 +172,12 @@ const DeliveryCard = ({ delivery, viewer, onChanged, showPostingLink = false, ti
   const effectiveStatus = waiting.some((i) => i.path === "delivered")
     ? "delivered"
     : waiting.some((i) => i.path === "picked-up") ? "picked_up" : delivery.status;
+  const status = effectiveStatus === delivery.status
+    ? DELIVERY_STATUS[delivery.status]
+    : { ...DELIVERY_STATUS[effectiveStatus], label: `${DELIVERY_STATUS[effectiveStatus].label} (not sent yet)` };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const status = DELIVERY_STATUS[delivery.status];
+
 
   const run = async () => {
     setBusy(true);

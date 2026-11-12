@@ -41,7 +41,10 @@ In the United States, an estimated **30 to 40 percent** of the food supply is wa
 **For everyone**
 - Reset a forgotten password by email, or change it from your profile; either signs out your other devices.
 - Notifications under the bell, optional browser alerts, and optional email.
-- An **installable app (PWA)** with a phone-friendly bottom navigation bar and an offline notice.
+- Built for **phones and tablets** first: an installable app (PWA) with a bottom navigation bar on phones, finger-sized buttons on touchscreens, and layouts checked at iPad sizes in portrait and landscape. Safari has no install button, so iPhone and iPad users get step-by-step "Add to Home Screen" instructions (iPhones only get push notifications from the home-screen app).
+- **Directions** buttons open Apple Maps on iPhone and iPad, and Google Maps elsewhere.
+- **Works with no signal** for drivers: a pickup or drop-off recorded at a basement loading dock is saved on the phone and sent automatically when the connection returns, with the time it really happened. The driver's current jobs stay viewable offline.
+- **Keep me signed in** is on by default, and a device in regular use stays signed in. Untick it on a shared computer, or sign out every other device from your profile (for a lost phone or a shared tablet).
 - Postings expire automatically when their pickup window ends.
 
 **Privacy and safety**
@@ -86,7 +89,7 @@ The demo uses a fake geocoder (addresses land around Edmonton) and prints emails
 1. **Server:** copy `server/.env.example` to `server/.env` and fill in `MONGO_URI`, `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`. The server won't start without them. Then run `cd server && npm install && npm start`.
 2. **Client:** create `client/.env` with `REACT_APP_HOST_URL=http://localhost:5000/` (keep the trailing slash; on macOS, port 5000 is often taken by AirPlay Receiver, so set `PORT=5055` in `server/.env` and use that port here) and `REACT_APP_GCP_KEY=<your Google Maps key>`. Then run `cd client && npm install && npm start` (Vite dev server on http://localhost:3000). `npm run build` writes the production bundle to `client/build/`, and `npm run lint` runs ESLint.
 3. **Tests:** `cd server && npm test` runs the API test suite against an in-memory MongoDB (no database or keys needed). GitHub Actions runs the same tests, plus the client's lint and build, on every push and pull request (`.github/workflows/ci.yml`).
-4. **Browser tests:** `cd e2e && npm install && npx playwright install chromium && npm test` starts demo mode and the client on spare ports and clicks through the main flows (posting, claiming, a volunteer delivery with photo handoffs and food bank confirmation, admin verification, password reset, phone layout) in Chromium. CI runs these too.
+4. **Browser tests:** `cd e2e && npm install && npx playwright install chromium && npm test` starts demo mode and the client on spare ports and clicks through the main flows (posting, claiming, a volunteer delivery with photo handoffs and food bank confirmation, a pickup recorded with no signal, admin verification, password reset, phone layout, and iPad layouts with finger-sized buttons) in Chromium. CI runs these too.
 
 ### Optional server settings
 

@@ -16,6 +16,8 @@ export const brand = {
 
 const fontFamily = '"Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
+const TOUCH = "@media (pointer: coarse)";
+
 const theme = createTheme({
   palette: {
     primary: { main: brand.leaf, dark: brand.leafDark, light: brand.leafTint, contrastText: "#fff" },
@@ -37,10 +39,15 @@ const theme = createTheme({
     button: { textTransform: "none", fontWeight: 700 },
   },
   components: {
+    // On touchscreens (phones, the restaurant's iPad) every button is at least
+    // 44px tall, the size Apple and Google recommend for a fingertip.
+    MuiIconButton: {
+      styleOverrides: { root: { [TOUCH]: { minWidth: 44, minHeight: 44 } } },
+    },
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {
-        root: { borderRadius: 999, paddingInline: 20 },
+        root: { borderRadius: 999, paddingInline: 20, [TOUCH]: { minHeight: 44 } },
         sizeLarge: { paddingBlock: 12, paddingInline: 28, fontSize: "1rem" },
       },
     },

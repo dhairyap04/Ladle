@@ -69,7 +69,7 @@ export const InstallPrompt = () => {
         sx={{ alignItems: "center", boxShadow: 3 }}
         action={
           <>
-            <InstallButton color="inherit" size="small" onDone={dismiss}>{method === "ios" ? "Show me how" : "Install"}</InstallButton>
+            <InstallButton color="inherit" size="small" onDone={dismiss} sx={{ whiteSpace: "nowrap" }}>{method === "ios" ? "Show me how" : "Install"}</InstallButton>
             <IconButton size="small" aria-label="Not now" color="inherit" onClick={dismiss}><CloseRoundedIcon fontSize="small" /></IconButton>
           </>
         }

@@ -79,7 +79,7 @@ export const PrivacyPage = () => (
     ]} />
 
     <H2>Cookies and storage</H2>
-    <P>Ladle uses two cookies to keep you signed in (an access token and a refresh token). They aren&apos;t used for tracking. Your browser also stores small settings on your device, such as whether you dismissed the &quot;install app&quot; prompt, and caches the app so it can open offline.</P>
+    <P>Ladle uses two cookies to keep you signed in (an access token and a refresh token). They aren&apos;t used for tracking. Your browser also stores a few things on your device: small settings (such as whether you dismissed the &quot;install app&quot; prompt), who is signed in and, for drivers, your current deliveries, so the app still opens without signal, and any pickup or drop-off you recorded offline until it&apos;s sent. These are removed when you log out. The app itself is cached so it can open offline. If you untick &quot;Keep me signed in&quot;, the sign-in cookie lasts only until you close the browser.</P>
 
     <H2>How long we keep it</H2>
     <Ul items={[

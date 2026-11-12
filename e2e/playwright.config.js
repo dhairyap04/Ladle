@@ -17,8 +17,10 @@ module.exports = defineConfig({
     trace: "retain-on-failure",
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: /mobile\.spec\.js/ },
+    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: /(mobile|tablet)\.spec\.js/ },
     { name: "phone", use: { ...devices["Pixel 7"] }, testMatch: /mobile\.spec\.js/ },
+    // An iPad's size, touch and user agent, in Chromium (the only browser CI installs).
+    { name: "tablet", use: { ...devices["iPad (gen 7)"], browserName: "chromium" }, testMatch: /tablet\.spec\.js/ },
   ],
   webServer: [
     {
