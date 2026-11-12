@@ -1,2 +1,4 @@
 node_modules
+# Photos saved by PHOTO_STORAGE=disk (the development default)
+uploads/
 .env

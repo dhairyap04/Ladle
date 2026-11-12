@@ -97,6 +97,7 @@ The demo uses a fake geocoder (addresses land around Edmonton) and prints emails
 | Variable | What it enables |
 |---|---|
 | `GOOGLE_MAPS_API_KEY` | Geocodes addresses when they're saved, for distance search, distances on cards and new-food alerts by radius. Restrict the key to the Geocoding API. |
+| `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Keeps food and handoff photos in an S3-compatible bucket (Amazon S3, Cloudflare R2, Backblaze B2) instead of the database. Keep the bucket private; Ladle serves the photos and checks who may see them. Without it, photos go to `server/uploads` in development and stay in MongoDB in production. After setting it up, run `npm run photos:move` once to move existing photos. |
 | `SMTP_URL`, `EMAIL_FROM` | Emails notifications as well as showing them in the app. |
 | `ADMIN_EMAILS` | Comma-separated emails of accounts that get the admin console (applied when they sign up or log in). |
 | `REQUIRE_VERIFIED_TO_CLAIM` | `true` lets only verified food banks claim postings. Off by default. |
