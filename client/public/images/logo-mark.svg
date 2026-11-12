@@ -1,14 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MealDrop">
-  <!-- Drop -->
-  <path d="M32 3C32 3 9 27.5 9 41a23 23 0 0 0 46 0C55 27.5 32 3 32 3Z" fill="#1B6B4A"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Ladle">
+  <circle cx="32" cy="32" r="31" fill="#1B6B4A"/>
+  <!-- Handle -->
+  <path d="M38.5 35 49 12.5" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+  <!-- Bowl -->
+  <path d="M12 34.5h28a14 14 0 0 1-28 0Z" fill="#FFFFFF"/>
   <!-- Steam -->
   <g fill="none" stroke="#F08A24" stroke-width="3" stroke-linecap="round">
-    <path d="M25 33c-2.2-2.6 2.2-4.4 0-7"/>
-    <path d="M32 31c-2.2-2.6 2.2-4.4 0-7"/>
-    <path d="M39 33c-2.2-2.6 2.2-4.4 0-7"/>
+    <path d="M20 28.5c-2-2.4 2-4 0-6.4"/>
+    <path d="M27 27c-2-2.4 2-4 0-6.4"/>
+    <path d="M34 28.5c-2-2.4 2-4 0-6.4"/>
   </g>
-  <!-- Bowl -->
-  <path d="M17 38h30a15 15 0 0 1-30 0Z" fill="#FFFFFF"/>
-  <rect x="15" y="36" width="34" height="4" rx="2" fill="#FFFFFF"/>
-  <path d="M23 43h18" stroke="#E6F2EC" stroke-width="2" stroke-linecap="round"/>
 </svg>

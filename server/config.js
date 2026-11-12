@@ -22,7 +22,7 @@ module.exports = {
   googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "",
   // Optional SMTP connection for email alerts, e.g. smtps://user:pass@smtp.example.com:465.
   smtpUrl: process.env.SMTP_URL || "",
-  emailFrom: process.env.EMAIL_FROM || "MealDrop <no-reply@mealdrop.local>",
+  emailFrom: process.env.EMAIL_FROM || "Ladle <no-reply@ladle.local>",
   // Emails of accounts that get the admin console (comma-separated).
   adminEmails: (process.env.ADMIN_EMAILS || "")
     .split(",")

@@ -94,7 +94,7 @@ const LandingPage = () => {
               Good food, picked up. <Box component="span" sx={{ color: "primary.main" }}>Not thrown out.</Box>
             </Typography>
             <Typography sx={{ mt: 2.5, fontSize: "1.15rem", color: "text.secondary", maxWidth: 520 }}>
-              MealDrop connects restaurants that have surplus food with food banks nearby. Post in a minute, claim in a tap, and track every pickup.
+              Ladle connects restaurants that have surplus food with food banks nearby. Post in a minute, claim in a tap, and track every pickup.
             </Typography>
             {user ? (
               <Button component={RouterLink} to="/main" variant="contained" size="large" sx={{ mt: 4 }}>
@@ -124,7 +124,7 @@ const LandingPage = () => {
       <Box component="section" aria-labelledby="how-title" sx={{ bgcolor: "#fff", borderBlock: 1, borderColor: "divider", py: { xs: 6, md: 8 } }}>
         <Container maxWidth="lg">
           <Typography id="how-title" component="h2" variant="h4" sx={{ textAlign: "center", color: "primary.dark" }}>
-            How MealDrop works
+            How Ladle works
           </Typography>
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 3, mt: 4 }}>
             {STEPS.map((step, index) => (
@@ -142,7 +142,7 @@ const LandingPage = () => {
       </Box>
 
       {/* Audiences */}
-      <Container maxWidth="lg" component="section" aria-label="Who MealDrop is for" sx={{ py: { xs: 6, md: 8 } }}>
+      <Container maxWidth="lg" component="section" aria-label="Who Ladle is for" sx={{ py: { xs: 6, md: 8 } }}>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
           {AUDIENCES.map((audience, index) => (
             <Paper key={audience.title} variant="outlined" sx={{ p: { xs: 3, md: 4 }, borderRadius: 4 }}>

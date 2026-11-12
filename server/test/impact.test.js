@@ -57,7 +57,7 @@ test("CSV export lists donations and neutralises formulas", async () => {
 test("donation record: parties only, after pickup", async () => {
   const r = await donor.get(`/posting/${first._id}/receipt`);
   assert.strictEqual(r.status, 200, JSON.stringify(r.body));
-  assert.match(r.body.receiptNumber, /^MD-[0-9A-F]{8}$/);
+  assert.match(r.body.receiptNumber, /^LD-[0-9A-F]{8}$/);
   assert.strictEqual(r.body.recipient.charitableTaxNum, "123456789RR0001");
   assert.strictEqual(r.body.food.estimatedWeightKg, 10);
   assert.strictEqual((await bank.get(`/posting/${first._id}/receipt`)).status, 200);

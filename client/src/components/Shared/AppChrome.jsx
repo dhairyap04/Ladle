@@ -10,7 +10,7 @@ import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import { canInstall, isStandalone, onInstallAvailable, promptInstall } from "../../pwa";
 
-const DISMISS_KEY = "mealdrop.installDismissed";
+const DISMISS_KEY = "ladle.installDismissed";
 
 const readDismissed = () => {
   try {
@@ -41,7 +41,7 @@ export const OfflineBanner = () => {
   );
 };
 
-// Offers to install MealDrop as an app, where the browser supports it.
+// Offers to install Ladle as an app, where the browser supports it.
 export const InstallPrompt = () => {
   const [available, setAvailable] = useState(canInstall());
   const [dismissed, setDismissed] = useState(readDismissed);
@@ -73,7 +73,7 @@ export const InstallPrompt = () => {
           </>
         }
       >
-        Install MealDrop for quicker posting and pickups.
+        Install Ladle for quicker posting and pickups.
       </Alert>
     </Snackbar>
   );

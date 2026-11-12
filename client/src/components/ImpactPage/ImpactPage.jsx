@@ -40,7 +40,7 @@ const ImpactPage = () => {
           <Box>
             <Typography component="h1" variant="h4" sx={{ color: "primary.dark" }}>Your impact</Typography>
             <Typography color="text.secondary">
-              {isFoodbank ? "Food your food bank has collected through MealDrop." : "Food you've donated through MealDrop that was picked up."}
+              {isFoodbank ? "Food your food bank has collected through Ladle." : "Food you've donated through Ladle that was picked up."}
             </Typography>
           </Box>
           {data && data.donations > 0 && (

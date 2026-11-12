@@ -1,9 +1,9 @@
-// MealDrop service worker: makes the app installable and lets the app shell
+// Ladle service worker: makes the app installable and lets the app shell
 // open offline. API requests (a different origin) are never cached, so data
 // is always live; offline, the app shows its usual "can't reach the server".
-const VERSION = "v1";
-const SHELL = `mealdrop-shell-${VERSION}`;
-const ASSETS = `mealdrop-assets-${VERSION}`;
+const VERSION = "v2";
+const SHELL = `ladle-shell-${VERSION}`;
+const ASSETS = `ladle-assets-${VERSION}`;
 const PRECACHE = [
   "/",
   "/manifest.webmanifest",

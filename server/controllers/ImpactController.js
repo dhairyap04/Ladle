@@ -89,11 +89,11 @@ const exportDonations = async (req, res) => {
     ]),
   ];
   res.set("Content-Type", "text/csv; charset=utf-8");
-  res.set("Content-Disposition", 'attachment; filename="mealdrop-donations.csv"');
+  res.set("Content-Disposition", 'attachment; filename="ladle-donations.csv"');
   return res.send(rows.map((r) => r.map(csvCell).join(",")).join("\r\n"));
 };
 
-const receiptNumber = (id) => `MD-${String(id).slice(-8).toUpperCase()}`;
+const receiptNumber = (id) => `LD-${String(id).slice(-8).toUpperCase()}`;
 
 // GET /posting/:id/receipt — a record of one completed donation, for the
 // restaurant that gave it or the food bank that collected it.
