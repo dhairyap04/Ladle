@@ -1,46 +1,54 @@
-# Meal Drop
+<p align="center"><img src="client/public/images/logo-mark.svg" width="96" alt="MealDrop logo"></p>
 
-<img src="logo.jpg" width="300">
-<img src="landing.png">
-<img src="signup.png">
-<img src="main.png">
-<img src="create.jpg">
-<img src="personalInfo.jpg">
-<img src="viewPost.png">
-<img src="confirmation.png">
+# MealDrop
 
+MealDrop connects restaurants that have surplus food with food banks that can collect it. Restaurants post what they have and when it can be picked up; food banks see nearby postings on a list and a map, claim one, and mark it collected.
 
+MealDrop is designed, built and maintained by **Dhairya Prajapati**. Development started in **February 2026** and is ongoing.
 
-## Inspiration
-Many of us who previously worked in a restaurant know all too well the problem of food waste. In the United States, food waste makes up around **30 to 40 percent** of the food supply. At the same time, **690 million people** go to bed on an **empty stomach worldwide.** **Mealdrop** aims to mitigate this problem. 
+<p align="center"><img src="docs/screenshots/landing.jpg" width="720" alt="MealDrop landing page"></p>
+
+## Why
+
+In the United States, an estimated **30 to 40 percent** of the food supply is wasted, while millions of households don't have reliable access to enough food. Restaurants regularly end a shift with good food they can't sell, and small restaurants rarely have an easy way to offer it to someone who can use it. MealDrop aims to make donating that food take a couple of minutes.
 
 ## What it does
-**Mealdrop** is an ingenious application that helps solve food waste absolutely for free! Restaurants with extra food can create a posting within minutes, detailing the food and pickup options. Once a food bank notices a nearby posting, they can submit a pickup request and collect the extra food whenever they wish.
 
-## How we built it
-We created this app using the **MERN stack (MongoDB, Express, React.js, Node.js)**. Our **Heroku server** handles **RESTful HTTP requests** from the front-end app to manipulate the **Mongo database**. To ping these endpoints on the server we use **Axios, a promise-based HTTP client,** on the front-end. 
+- **Restaurants** sign up, post the pickup address, date and time window, and add notes about the food. They can edit or withdraw a posting while it's still open.
+- **Food banks** browse open postings in a list and on a map, claim one (only one food bank can claim each posting), and mark it picked up once they've collected it.
+- Each account has a "Your postings" or "Your pickups" list, so both sides can see where every donation stands: open, claimed, picked up, expired or withdrawn.
+- Postings expire automatically when their pickup window ends.
 
-Our React front-end also handles authentication through **JWT (JSON Web Tokens)** and stores the user data serverlessly. Through this user data authentication, we can make sure that all server requests are legitimate; no outside user can manipulate another **MealDrop** user's data without their permission. We have also implemented **Google Cloud Platform's Javascript Maps** and their **GeoCode** library to display the locations of the participating restaurants on a map.
+## Screenshots
 
-On the side of our back-end, we are hosting our server on **Heroku**. This way, we can ping our server endpoints without running our server locally. We created extremely robust yet flexible schemas for our database following the advanced principles of database creation. We handled routes in an elegant manner by making sure that the code was upscalable - to add any other routes, all that is required is to add another router file. 
+| Sign up | Open pickups |
+|---|---|
+| <img src="docs/screenshots/sign-up.jpg" alt="Sign-up page with restaurant and food bank role cards"> | <img src="docs/screenshots/pickups.jpg" alt="Food bank view of open pickups and claimed pickups"> |
 
-We followed **clean code practices** in creating this in the hopes that one day we can turn this project into a reality.
+| Posting details | |
+|---|---|
+| <img src="docs/screenshots/posting.jpg" alt="Posting details with a status tracker"> | The map shows "Map unavailable" in these screenshots because no Google Maps key was set locally. |
+
+The design direction, competitor research and colour palette are documented in [docs/DESIGN.md](docs/DESIGN.md).
+
+## How it's built
+
+- **Client:** React with Material UI, built with Vite. Google Maps JavaScript API and Geocoding show posting locations on a map.
+- **Server:** Node.js and Express REST API with a MongoDB database (Mongoose).
+- **Auth:** passwords are hashed with bcrypt; sessions use short-lived JWT access tokens and refresh tokens stored in httpOnly cookies.
+- **Access control:** only restaurants can create, edit or withdraw postings, only food banks can claim them, and each user can only change their own data.
 
 ## Running locally
 
 1. **Server:** copy `server/.env.example` to `server/.env` and fill in `MONGO_URI`, `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`. The server won't start without them. Then run `cd server && npm install && npm start`.
 2. **Client:** create `client/.env` with `REACT_APP_HOST_URL=http://localhost:5000/` (keep the trailing slash) and `REACT_APP_GCP_KEY=<your Google Maps key>`. Then run `cd client && npm install && npm start` (Vite dev server on http://localhost:3000). `npm run build` writes the production bundle to `client/build/`, and `npm run lint` runs ESLint.
 
-## Challenges we ran into
-Some challenges that we ran into were regarding the **JWT token authentication.** We wanted to make sure that the **cookies** allowed for **seamless UX** by introducing **refresh tokens**. These refresh tokens automatically **authenticate** the user for up to 200 days.
+## Roadmap
 
-Some more challenges that we ran into were with GitHub at times. We **accidentally** deleted all of our code, and the only way we could get that code back was by CTRL+S'ing on the "deleted" on the files in our VSCode editors.
+- Richer postings: food type, quantity, allergens and photos.
+- Notifications when a posting is claimed or about to expire.
+- Distance filtering and "near me" search.
+- Volunteer drivers who can collect food on a food bank's behalf.
+- Impact reports and donation receipts for restaurants.
 
-## Accomplishments that we're proud of
-We are proud of being able to create this project within 24 hours. Considering that this app has 8 separate pages and we are only a group of 3, this project took us a solid amount of time. We made sure EVERYTHING worked and was hooked up (there is no dummy data anywhere :) ), and this strive for perfection made this app the beauty that it is right now.
-
-## What we learned
-We learned about JWT tokens, CORs policies, React development, Express development, Node.js development, and MongoDB schema design principles.
-
-## What's next for Meal Drop
-We plan on implementing our Beta features which are hooking up **MealDrop** with **Uber** delivery, and creating a **separate user account type** for volunteer drivers. 
+See [AUDIT_REPORT.md](AUDIT_REPORT.md) for the full list of planned improvements.

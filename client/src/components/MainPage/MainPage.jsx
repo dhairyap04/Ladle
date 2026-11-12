@@ -1,162 +1,202 @@
-// main imports
-import { Component } from 'react'
-import { Link } from 'react-router-dom';
-
-// css imports
-import "../../global.css";
-import "./MainPage.css";
-
-// Root imports
-import Button from '@mui/material/Button';
-import PostingTile from './Components/PostingTile';
+import { useCallback, useEffect, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
+import { Alert, Box, Button, Container, Paper, Skeleton, Stack, Typography } from "@mui/material";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
 import Geocode from "react-geocode";
-import SimpleMap from './Components/GoogleMap';
-import CreatePostingModal from './Components/CreatePosting';
-import api from '../../api';
 
-// set Google Maps Geocoding API for purposes of quota management. Its optional but recommended.
+import AppHeader from "../Shared/AppHeader";
+import PostingTile from "./Components/PostingTile";
+import SimpleMap from "./Components/GoogleMap";
+import CreatePostingModal from "./Components/CreatePosting";
+import api from "../../api";
+import useAuthUser from "../../useAuthUser";
+
+// Google Geocoding settings, used to put postings on the map.
 Geocode.setApiKey(import.meta.env.REACT_APP_GCP_KEY);
 Geocode.setLanguage("en");
 Geocode.setRegion("ca");
 
-const LinkTheme = {textDecoration: "None", color: "black"};
+const EmptyState = ({ children }) => (
+  <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, borderStyle: "dashed", textAlign: "center", bgcolor: "transparent" }}>
+    <Box sx={{ width: 48, height: 48, mx: "auto", mb: 1, borderRadius: "50%", bgcolor: "primary.light", color: "primary.main", display: "grid", placeItems: "center" }}>
+      <RestaurantRoundedIcon />
+    </Box>
+    <Typography color="text.secondary">{children}</Typography>
+  </Paper>
+);
 
-class MainPage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      postings: [],
-      latlng: [],
-      loading: true,
-      loadError: false,
-      authorized: false,
-      authObject: {},
-      myPostings: [],
-      toggleModal: false,
-    };
-  }
+const Section = ({ title, subtitle, children }) => (
+  <Box component="section" sx={{ mb: 4 }}>
+    <Typography component="h2" variant="h6">{title}</Typography>
+    {subtitle && <Typography variant="body2" color="text.secondary">{subtitle}</Typography>}
+    <Stack spacing={1.5} sx={{ mt: 1.5 }}>{children}</Stack>
+  </Box>
+);
 
-  componentDidMount() {
-    this.getPostings();
-    api.get("user/isAuth")
-      .then(res => {
-        this.setState({ authorized: true, authObject: res.data });
-        this.getMyPostings();
-      })
-      .catch(() => this.setState({ authorized: false }));
-  }
+const Stat = ({ value, label }) => (
+  <Paper variant="outlined" sx={{ px: 2.5, py: 1.5, borderRadius: 3, minWidth: 120 }}>
+    <Typography sx={{ fontWeight: 800, fontSize: "1.6rem", color: "primary.dark", lineHeight: 1.2 }}>{value}</Typography>
+    <Typography variant="body2" color="text.secondary">{label}</Typography>
+  </Paper>
+);
+
+const MainPage = () => {
+  const user = useAuthUser();
+  const [postings, setPostings] = useState(null); // null while loading
+  const [loadError, setLoadError] = useState(false);
+  const [myPostings, setMyPostings] = useState([]);
+  const [latlng, setLatlng] = useState([]);
+  const [creating, setCreating] = useState(false);
+
+  const loadPostings = useCallback(async () => {
+    try {
+      const res = await api.get("posting/all");
+      setPostings(res.data);
+      setLoadError(false);
+      const points = await Promise.all(
+        res.data.map((posting) =>
+          Geocode.fromAddress(posting.fromRestaurantAddress)
+            .then((geo) => {
+              const { lat, lng } = geo.results[0].geometry.location;
+              return { lat, lng, name: posting.fromRestaurantName };
+            })
+            .catch(() => null) // an address Google can't find just has no pin
+        )
+      );
+      setLatlng(points.filter(Boolean));
+    } catch (err) {
+      console.error("Posting retrieval failed", err);
+      setPostings([]);
+      setLoadError(true);
+    }
+  }, []);
 
   // A restaurant's own postings, or the pickups a food bank has claimed.
-  getMyPostings = async () => {
+  const loadMine = useCallback(async () => {
     try {
       const res = await api.get("posting/mine");
-      this.setState({ myPostings: res.data });
+      setMyPostings(res.data);
     } catch (err) {
       console.error("My postings retrieval failed", err);
     }
-  }
+  }, []);
 
-  renderMyPostings() {
-    const { authorized, authObject, myPostings } = this.state;
-    if (!authorized) return null;
-    return (
-      <div className="my-postings">
-        <h2 className="section-title">{authObject.isFoodbank ? "Your pickups" : "Your postings"}</h2>
-        {myPostings.length === 0 ? (
-          <p className="empty-state">
-            {authObject.isFoodbank ? "Pickups you claim will show up here." : "Postings you create will show up here."}
-          </p>
-        ) : (
-          myPostings.map((posting) => <PostingTile key={posting._id} postingData={posting} showStatus />)
+  useEffect(() => { loadPostings(); }, [loadPostings]);
+  useEffect(() => { if (user) loadMine(); }, [user, loadMine]);
+
+  const handleCreated = () => {
+    setCreating(false);
+    loadPostings();
+    loadMine();
+  };
+
+  const isRestaurant = user && !user.isFoodbank;
+  const count = (status) => myPostings.filter((p) => p.status === status).length;
+
+  const openList = (
+    <Section
+      title={isRestaurant ? "All open pickups" : "Open pickups"}
+      subtitle={isRestaurant ? "What's currently available to food banks in the area" : "Claim one to reserve it for your food bank"}
+    >
+      {postings === null ? (
+        [0, 1, 2].map((i) => <Skeleton key={i} variant="rounded" height={96} sx={{ borderRadius: 4 }} />)
+      ) : loadError ? (
+        <Alert severity="error">Couldn&apos;t load postings. Please refresh the page.</Alert>
+      ) : postings.length === 0 ? (
+        <EmptyState>No food is waiting for pickup right now. Check back soon.</EmptyState>
+      ) : (
+        postings.map((posting) => <PostingTile key={posting._id} postingData={posting} />)
+      )}
+    </Section>
+  );
+
+  const mineList = user && (
+    <Section
+      title={user.isFoodbank ? "Your pickups" : "Your postings"}
+      subtitle={user.isFoodbank ? "Pickups your food bank has claimed" : "Everything you've posted, with its current status"}
+    >
+      {myPostings.length === 0 ? (
+        <EmptyState>
+          {user.isFoodbank ? "Pickups you claim will show up here." : "You haven't posted any food yet. Your postings will show up here."}
+        </EmptyState>
+      ) : (
+        myPostings.map((posting) => <PostingTile key={posting._id} postingData={posting} showStatus />)
+      )}
+    </Section>
+  );
+
+  return (
+    <>
+      <AppHeader user={user} />
+      {creating && <CreatePostingModal onClose={() => setCreating(false)} onSaved={handleCreated} />}
+
+      <Container maxWidth="lg" component="main" sx={{ py: { xs: 3, md: 5 } }}>
+        {/* Page heading */}
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="space-between" alignItems={{ sm: "flex-end" }} sx={{ mb: 3 }}>
+          <Box>
+            <Typography component="h1" variant="h4" sx={{ color: "primary.dark" }}>
+              {user ? `Hi, ${user.name}` : "Food waiting for pickup"}
+            </Typography>
+            <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+              {isRestaurant
+                ? "Got surplus food? Post it and nearby food banks can claim it."
+                : user
+                  ? "Find surplus food from restaurants near you."
+                  : "Restaurants post surplus food here for food banks to collect."}
+            </Typography>
+          </Box>
+          {isRestaurant && (
+            <Button variant="contained" size="large" startIcon={<AddRoundedIcon />} onClick={() => setCreating(true)} sx={{ flexShrink: 0 }}>
+              Post surplus food
+            </Button>
+          )}
+        </Stack>
+
+        {user && myPostings.length > 0 && (
+          <Stack direction="row" spacing={1.5} sx={{ mb: 3, overflowX: "auto", pb: 0.5 }}>
+            {user.isFoodbank ? (
+              <>
+                <Stat value={count("claimed")} label="Upcoming pickups" />
+                <Stat value={count("picked_up")} label="Pickups completed" />
+              </>
+            ) : (
+              <>
+                <Stat value={count("open")} label="Open now" />
+                <Stat value={count("claimed")} label="Claimed" />
+                <Stat value={count("picked_up")} label="Donations picked up" />
+              </>
+            )}
+          </Stack>
         )}
-      </div>
-    );
-  }
 
-  getPostings = async () => {
-    try {
-      const res = await api.get("posting/all");
-      this.setState({ postings: res.data, loading: false, loadError: false }, this.getLatLng);
-    } catch (err) {
-      console.error("Posting retrieval failed", err);
-      this.setState({ loading: false, loadError: true });
-    }
-  }
-
-  getLatLng = async () => {
-    const results = await Promise.all(
-      this.state.postings.map((posting) =>
-        Geocode.fromAddress(posting.fromRestaurantAddress)
-          .then((res) => {
-            const { lat, lng } = res.results[0].geometry.location;
-            return { lat, lng, name: posting.fromRestaurantName };
-          })
-          .catch(() => null) // an address Google can't find just has no pin
-      )
-    );
-    this.setState({ latlng: results.filter(Boolean) });
-  }
-
-  handleCreated = () => {
-    this.setState({ toggleModal: false });
-    this.getPostings();
-    this.getMyPostings();
-  }
-
-  renderPostings() {
-    const { postings, loading, loadError } = this.state;
-    if (loading) return <p className="empty-state">Loading postings…</p>;
-    if (loadError) return <p className="empty-state">Couldn&apos;t load postings. Please refresh the page.</p>;
-    if (postings.length === 0) {
-      return <p className="empty-state">No food is waiting for pickup right now. Check back soon.</p>;
-    }
-    return postings.map((posting) => <PostingTile key={posting._id} postingData={posting} />);
-  }
-
-  render() {
-    const { authorized: auth, authObject, latlng } = this.state;
-    const canPost = auth && !authObject.isFoodbank;
-    return (
-      <>
-        {this.state.toggleModal && (
-          <CreatePostingModal
-            onClose={() => this.setState({ toggleModal: false })}
-            onSaved={this.handleCreated}
-          />
+        {user === null && (
+          <Alert severity="info" sx={{ mb: 3 }} action={<Button component={RouterLink} to="/auth?role=foodbank" color="inherit">Sign up</Button>}>
+            Food banks can claim these pickups with a free account.
+          </Alert>
         )}
-        <div className='container flex-column center-center' >
 
-          <div className="flex-row space-between welcome-banner">
-            <div className='flex-row start-center'>
-              <Link to="/main">
-                <img src='/images/logo.png' alt="MealDrop home" width="90px"></img>
-              </Link>
-              <div className="welcome">
-                Welcome {!auth ? "Guest" : authObject.name}!
-              </div>
-            </div>
-            <Link style={LinkTheme} to={auth ? "/view_profile" : "/auth"}>
-              <Button variant="outlined">
-                {auth ? "Manage Personal Info" : "Sign Up / Log In"}
-              </Button>
-            </Link>
-          </div>
-          <div className='flex-row space-between start main-container'>
-            <div className='postings-row'>
-              {canPost && (
-                <Button variant="contained" sx={{ width: "100%", height: "45px" }} onClick={() => { this.setState({ toggleModal: true }) }} >Create a Posting</Button>
-              )}
-              {this.renderPostings()}
-              {this.renderMyPostings()}
-            </div>
-            <div className='maps-row'>
-              <SimpleMap latlng={latlng} />
-            </div>
-          </div>
-        </div>
-      </>
-    )
-  }
-}
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) minmax(0, 1fr)" }, gap: { xs: 3, md: 4 }, alignItems: "start" }}>
+          <Box>
+            {isRestaurant ? <>{mineList}{openList}</> : <>{openList}{mineList}</>}
+          </Box>
+          <Paper
+            variant="outlined"
+            sx={{
+              position: { md: "sticky" },
+              top: { md: 88 },
+              height: { xs: 260, md: "calc(100vh - 120px)" },
+              maxHeight: 640,
+              borderRadius: 4,
+              overflow: "hidden",
+            }}
+          >
+            <SimpleMap latlng={latlng} />
+          </Paper>
+        </Box>
+      </Container>
+    </>
+  );
+};
 
 export default MainPage;

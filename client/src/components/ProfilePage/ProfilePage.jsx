@@ -1,14 +1,12 @@
 // main imports
 import { Component } from 'react'
-import { Link } from 'react-router-dom';
 
 // mui imports
-import { Alert, Button, TextField } from '@mui/material';
+import { Alert, Box, Button, Container, Paper, Stack, TextField, Typography } from '@mui/material';
+import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
+import VolunteerActivismRoundedIcon from '@mui/icons-material/VolunteerActivismRounded';
 
-// css imports
-import "../../global.css";
-import "./ProfilePage.css";
-import "../MainPage/Components/CreatePosting.css";
+import AppHeader from '../Shared/AppHeader';
 
 // Root imports
 import api, { errorMessage } from '../../api';
@@ -29,6 +27,7 @@ class ProfilePage extends Component {
       values: empty,
       saved: empty,
       isFoodbank: false,
+      user: undefined, // for the header
       loading: true,
       saving: false,
       error: "",
@@ -47,7 +46,7 @@ class ProfilePage extends Component {
           website: user.website,
           ...splitHours(user.openHours),
         };
-        this.setState({ values, saved: values, isFoodbank: user.isFoodbank, loading: false });
+        this.setState({ values, saved: values, isFoodbank: user.isFoodbank, user, loading: false });
       })
       .catch((err) => {
         if (err.response && err.response.status === 401) {
@@ -94,55 +93,62 @@ class ProfilePage extends Component {
   }
 
   render() {
-    const { values, loading, saving, error, isFoodbank } = this.state;
+    const { values, loading, saving, error, isFoodbank, user } = this.state;
     const field = (name, label, extra = {}) => (
       <TextField
-        value={values[name]}
+        value={values[name] || ""}
         onChange={this.handleChange(name)}
-        className="textfield-data"
         fullWidth
-        size="large"
         label={label}
         disabled={loading}
         {...extra}
       />
     );
+    const RoleIcon = isFoodbank ? VolunteerActivismRoundedIcon : StorefrontRoundedIcon;
 
     return (
-      <div className='container flex-column center-center' >
-        <div className="flex-row start-center">
-          <Link to="/main">
-            <img src='/images/logo.png' alt="MealDrop home" width="90px"></img>
-          </Link>
-          <div className="flex-column center-center" style={{ marginLeft: "25px" }}>
-            <div className='profile-header'>
-              Profile
-            </div>
-            <div className='profile-subheader'>
-              Update your Personal Info
-            </div>
-          </div>
-        </div>
-        {error && <Alert severity="error" sx={{ mt: 2, width: "100%", boxSizing: "border-box" }}>{error}</Alert>}
-        <div className='flex-row' style={{ justifyContent: "space-between", width: "100%" }}>
-          <div className='create-posting-left ' style={{ marginTop: "20px" }}>
-            {field("name", "Name", { required: true })}
-            {field("phoneNumber", "Phone Number", { type: "tel" })}
-            {isFoodbank && field("charitableTaxNum", "Charitable Registration #")}
-          </div>
-          <div className='create-posting-left' style={{ marginTop: "20px" }}>
-            {field("address", "Address")}
-            {field("website", "Website", { type: "url" })}
-            <div className='flex-row' style={{ justifyContent: "space-between" }}>
-              {field("openTime", "Opening Time", { type: "time", style: { width: "49%" }, InputLabelProps: { shrink: true } })}
-              {field("closeTime", "Closing Time", { type: "time", style: { width: "49%" }, InputLabelProps: { shrink: true } })}
-            </div>
-          </div>
-        </div>
-        <Button onClick={this.updateProfile} disabled={loading || saving} style={{ marginTop: "20px" }} variant="contained">
-          {saving ? "Saving…" : "Update Profile"}
-        </Button>
-      </div >
+      <>
+        <AppHeader user={user} />
+        <Container component="main" maxWidth="md" sx={{ py: { xs: 3, md: 5 } }}>
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+            <Box sx={{ width: 56, height: 56, borderRadius: 3, bgcolor: "primary.light", color: "primary.main", display: "grid", placeItems: "center" }}>
+              <RoleIcon />
+            </Box>
+            <Box>
+              <Typography component="h1" variant="h4" sx={{ color: "primary.dark" }}>Your profile</Typography>
+              <Typography color="text.secondary">
+                {loading ? "Loading…" : isFoodbank ? "Food bank account" : "Restaurant account"}
+              </Typography>
+            </Box>
+          </Stack>
+
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+          <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5 }}>
+            <Typography component="h2" variant="h6">Organization</Typography>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mt: 2 }}>
+              {field("name", "Name", { required: true })}
+              {field("phoneNumber", "Phone number", { type: "tel", autoComplete: "tel" })}
+              {field("website", "Website", { type: "url", autoComplete: "url" })}
+              {isFoodbank && field("charitableTaxNum", "Charitable registration #")}
+            </Box>
+
+            <Typography component="h2" variant="h6" sx={{ mt: 4 }}>Location and hours</Typography>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mt: 2 }}>
+              {field("address", "Address", { autoComplete: "street-address", sx: { gridColumn: { sm: "1 / -1" } } })}
+              {field("openTime", "Opens at", { type: "time", InputLabelProps: { shrink: true } })}
+              {field("closeTime", "Closes at", { type: "time", InputLabelProps: { shrink: true } })}
+            </Box>
+
+            <Stack direction="row" spacing={1.5} justifyContent="flex-end" sx={{ mt: 4 }}>
+              <Button onClick={() => this.props.history.push("/main")} color="inherit">Cancel</Button>
+              <Button onClick={this.updateProfile} disabled={loading || saving} variant="contained" size="large">
+                {saving ? "Saving…" : "Save profile"}
+              </Button>
+            </Stack>
+          </Paper>
+        </Container>
+      </>
     )
   }
 }

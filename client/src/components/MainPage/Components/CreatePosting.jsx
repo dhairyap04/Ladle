@@ -1,14 +1,24 @@
 // Main imports
-import { Alert, Button, TextField } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { Component } from 'react'
 
 // Root Imports
 import AddressContainer from '../../Shared/AddressContainer';
 import api, { errorMessage } from '../../../api';
 import { localDateTimeToIso, todayDateInput, toTimeInput } from '../../../time';
-
-// css imports
-import "./CreatePosting.css";
 
 // Creates a posting, or edits one when given a `posting` prop.
 class CreatePostingModal extends Component {
@@ -92,87 +102,61 @@ class CreatePostingModal extends Component {
   }
 
   render() {
-    const title = this.isEdit() ? "Edit Posting" : "Create a Posting";
+    const title = this.isEdit() ? "Edit posting" : "Post surplus food";
+    const field = (name, label, extra = {}) => (
+      <TextField
+        value={this.state[name]}
+        onChange={(e) => this.changeValue(name, e.target.value)}
+        fullWidth
+        label={label}
+        {...extra}
+      />
+    );
     return (
-      <div className="modal-container">
-        <div className="modal" role="dialog" aria-modal="true" aria-labelledby="create-posting-title">
-          <div className="flex-row" style={{ width: "100%", justifyContent: "space-between" }}>
-            <div className="modal-title" id="create-posting-title">{title}</div>
-            <button type="button" className="close-button" aria-label="Close" onClick={this.props.onClose}>
-              <img src="/images/close-button.svg" alt="" className="close-image" />
-            </button>
-          </div>
-          {this.state.error && (
-            <Alert severity="error" sx={{ width: "100%", boxSizing: "border-box", mb: 2 }}>{this.state.error}</Alert>
-          )}
-          <div className="flex-row" style={{ width: "100%", justifyContent: "space-between" }}>
-            <div className='flex-column create-posting-left'>
-              {this.isEdit() ? (
-                <TextField
-                  required
-                  value={this.state.address}
-                  onChange={(e) => this.changeValue("address", e.target.value)}
-                  fullWidth
-                  size="small"
-                  label="Pickup Address"
-                />
-              ) : (
-                <AddressContainer changeValue={this.changeValue} />
-              )}
-              <TextField
-                type="date"
-                required
-                value={this.state.pickupDate}
-                onChange={(e) => this.changeValue("pickupDate", e.target.value)}
-                className="pickup-period"
-                fullWidth
-                size="small"
-                label="Pickup Date"
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ min: todayDateInput() }}
-              />
-              <TextField
-                type="time"
-                required
-                value={this.state.pickupTimeBegin}
-                onChange={(e) => this.changeValue("pickupTimeBegin", e.target.value)}
-                className="pickup-period"
-                fullWidth
-                size="small"
-                label="Pickup Start"
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                type="time"
-                required
-                value={this.state.pickupTimeEnd}
-                onChange={(e) => this.changeValue("pickupTimeEnd", e.target.value)}
-                className="pickup-period"
-                fullWidth
-                size="small"
-                label="Pickup End"
-                InputLabelProps={{ shrink: true }}
-              />
-            </div>
-            <div className='flex-column create-posting-left'>
-              <TextField
-                value={this.state.notes}
-                onChange={(e) => this.changeValue("notes", e.target.value)}
-                className="pickup-notes"
-                multiline
-                fullWidth
-                rows={6}
-                size="large"
-                label="Pickup Notes"
-                placeholder="What food is it, how much, and anything the driver should know"
-              />
-            </div>
-          </div>
-          <Button onClick={this.submitForm} disabled={this.state.submitting} variant="contained" style={{width: "25%"}} className="create-posting">
-            {this.state.submitting ? "Saving…" : this.isEdit() ? "Save changes" : "Create"}
+      <Dialog open onClose={this.props.onClose} fullWidth maxWidth="sm" aria-labelledby="posting-dialog-title">
+        <DialogTitle id="posting-dialog-title" sx={{ pr: 7 }}>
+          <Typography component="span" variant="h5" sx={{ display: "block", color: "primary.dark" }}>{title}</Typography>
+          <Typography component="span" variant="body2" color="text.secondary">
+            Nearby food banks will see this and can claim it.
+          </Typography>
+          <IconButton aria-label="Close" onClick={this.props.onClose} sx={{ position: "absolute", right: 12, top: 12 }}>
+            <CloseRoundedIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {this.state.error && <Alert severity="error" sx={{ mb: 2 }}>{this.state.error}</Alert>}
+          <Stack spacing={3}>
+            <Box>
+              <Typography sx={{ fontWeight: 700, mb: 1.5 }}>Where</Typography>
+              {this.isEdit()
+                ? field("address", "Pickup address", { required: true })
+                : <AddressContainer changeValue={this.changeValue} />}
+            </Box>
+            <Box>
+              <Typography sx={{ fontWeight: 700, mb: 1.5 }}>When</Typography>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1.2fr 1fr 1fr" }, gap: 1.5 }}>
+                {field("pickupDate", "Pickup date", { type: "date", required: true, InputLabelProps: { shrink: true }, inputProps: { min: todayDateInput() } })}
+                {field("pickupTimeBegin", "From", { type: "time", required: true, InputLabelProps: { shrink: true } })}
+                {field("pickupTimeEnd", "Until", { type: "time", required: true, InputLabelProps: { shrink: true } })}
+              </Box>
+            </Box>
+            <Box>
+              <Typography sx={{ fontWeight: 700, mb: 1.5 }}>What</Typography>
+              {field("notes", "About the food", {
+                multiline: true,
+                minRows: 3,
+                placeholder: "e.g. 2 trays of roasted vegetables and 10 sandwiches, contains nuts. Ask at the back door.",
+              })}
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={this.props.onClose} color="inherit">Cancel</Button>
+          <Button onClick={this.submitForm} disabled={this.state.submitting} variant="contained">
+            {this.state.submitting ? "Saving…" : this.isEdit() ? "Save changes" : "Post it"}
           </Button>
-        </div>
-      </div>
+        </DialogActions>
+      </Dialog>
     )
   }
 }

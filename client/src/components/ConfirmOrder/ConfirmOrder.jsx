@@ -1,25 +1,29 @@
-import { Button } from '@mui/material';
-import { Link } from 'react-router-dom';
-import "../../global.css";
-import "./ConfirmOrder.css";
+import { Link as RouterLink } from 'react-router-dom';
+import { Box, Button, Container, Paper, Typography } from '@mui/material';
+import AppHeader from '../Shared/AppHeader';
+import useAuthUser from '../../useAuthUser';
 
 const ConfirmOrder = () => {
+    const user = useAuthUser();
     return (
-        <div id="orderconfirmed">
+        <>
+            <AppHeader user={user} />
+            <Container component="main" maxWidth="sm" sx={{ py: { xs: 4, md: 8 } }}>
+                <Paper variant="outlined" sx={{ p: { xs: 3, sm: 5 }, borderRadius: 5, textAlign: "center" }}>
+                    <Box component="img" src="/images/pickup-confirmed.svg" alt="" sx={{ width: 220, maxWidth: "100%" }} />
+                    <Typography component="h1" variant="h4" sx={{ mt: 2, color: "primary.dark" }}>
+                        Pickup reserved!
+                    </Typography>
+                    <Typography color="text.secondary" sx={{ mt: 1.5 }}>
+                        The food is held for your food bank. Please collect it during the pickup window, then mark it as picked up. Thank you for helping keep good food out of the bin.
+                    </Typography>
+                    <Button component={RouterLink} to="/main" variant="contained" size="large" sx={{ mt: 4 }}>
+                        See your pickups
+                    </Button>
+                </Paper>
+            </Container>
+        </>
+    );
+};
 
-            <img src="https://i.pinimg.com/originals/77/9b/9d/779b9dc3928c2dbc304bcf6702bef6df.gif" 
-            alt="confirmation" 
-            className="center" />
-            <p>Pickup reserved!</p>
-            <p>Please collect the food during the pickup window. Thank you for helping save food!</p>
-
-            <Link to="/main" style={{ textDecoration: "none"}}>
-                <Button variant="contained" style={{ marginTop: "50px" }}>
-                    Back to main page
-                </Button>
-            </Link>
-        </div>
-    )
-}
-
-export default ConfirmOrder
+export default ConfirmOrder;

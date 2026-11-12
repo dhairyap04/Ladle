@@ -44,3 +44,27 @@ export const STATUS_LABELS = {
   expired: "Expired",
   cancelled: "Withdrawn",
 };
+
+// "2026-11-10" -> "Today", "Tomorrow", or "Thu, Nov 12" (with the year if it isn't this year).
+export function friendlyPickupDate(date) {
+  if (!date) return "";
+  const day = new Date(`${date}T00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((day - today) / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays === -1) return "Yesterday";
+  return day.toLocaleDateString("en-CA", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    ...(day.getFullYear() !== today.getFullYear() && { year: "numeric" }),
+  });
+}
+
+// A posting's pickup window, e.g. "Today · 4:00 PM – 6:00 PM".
+export function formatPickupWindow(posting) {
+  const times = `${formatPickupTime(posting.pickupTimeBegin)} – ${formatPickupTime(posting.pickupTimeEnd)}`;
+  return posting.pickupDate ? `${friendlyPickupDate(posting.pickupDate)} · ${times}` : times;
+}

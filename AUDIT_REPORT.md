@@ -1,12 +1,14 @@
 **Analysis approach.** I read every tracked source file in `server/` (Express/Mongoose API) and `client/src/` (React SPA), the README, and the six UI screenshots committed at the repo root (`landing.png`, `signup.png`, `main.png`, `create.jpg`, `personalInfo.jpg`, `viewPost.png`). I ran the client through Create React App's own ESLint config and tried a production build. I did not run the API server, because it needs a MongoDB connection and I chose not to use the credentials embedded in the source. Runtime behavior is inferred from code plus screenshots; where a claim depends on something I couldn't execute, it is marked as an **assumption**. Competitor details come from general public knowledge and were not checked live.
 
+*Note (November 2026): this audit describes the app before the redesign. The 2022 screenshots it cites were removed from the repository afterwards and are still in git history; see [docs/DESIGN.md](docs/DESIGN.md) for the redesign.*
+
 ---
 
 # Repository Audit Report: MealDrop
 
 ## 1. Scope, Vision & Value Proposition
 
-**What it is.** MealDrop is a hackathon-built (README says "within 24 hours", team of 3) MERN web app that connects **restaurants with surplus food** to **food banks** that can collect it. Restaurants post the pickup address, a pickup window and notes. Food banks browse postings in a list and on a Google Map, open a posting, and press "I can pick this up".
+**What it is.** MealDrop is a MERN web app, built solo by Dhairya Prajapati since February 2026, that connects **restaurants with surplus food** to **food banks** that can collect it. Restaurants post the pickup address, a pickup window and notes. Food banks browse postings in a list and on a Google Map, open a posting, and press "I can pick this up".
 
 **Problem.** Food waste at the restaurant level, set against food insecurity (README cites the 30–40% US food-supply waste figure). In practice, small restaurants have no easy channel to offer one-off surplus, and food banks have no visibility into it.
 
@@ -25,7 +27,7 @@
 
 ## 3. Competitive Landscape
 
-*These are from general public knowledge, not checked live; confirm current offerings before using them externally.*
+*These are from general public knowledge, not checked live. A researched, sourced comparison (November 2026) is in [docs/DESIGN.md](docs/DESIGN.md).*
 
 | Competitor | What It Does Well | Differentiate / Align |
 |---|---|---|

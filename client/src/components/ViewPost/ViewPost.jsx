@@ -3,28 +3,36 @@ import { useEffect, useState } from 'react'
 import { Link, useHistory, useParams } from "react-router-dom";
 import {
   Alert,
+  Box,
   Button,
+  Container,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Divider,
+  Paper,
+  Skeleton,
+  Stack,
+  Step,
+  StepLabel,
+  Stepper,
+  Typography,
 } from '@mui/material';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
+import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
+import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
 import Geocode from "react-geocode";
 
 // Root imports
 import api, { errorMessage } from '../../api';
-import { formatPickupDate, formatPickupTime } from '../../time';
+import { formatPickupDate, formatPickupTime, formatPickupWindow } from '../../time';
+import AppHeader from '../Shared/AppHeader';
+import StatusChip from '../Shared/StatusChip';
 import SimpleMap from '../MainPage/Components/GoogleMap';
 import PostingModal from '../MainPage/Components/CreatePosting';
-
-// css
-import "../../global.css";
-import "./ViewPost.css";
-import "../MainPage/MainPage.css";
-import "../ProfilePage/ProfilePage.css";
-
-const LinkTheme = { textDecoration: "None", color: "black" };
 
 const STATUS_TEXT = {
   claimed: "A food bank has already claimed this posting.",
@@ -47,13 +55,25 @@ const CONFIRM_TEXT = {
   },
 };
 
+const DetailRow = ({ icon: Icon, label, children }) => (
+  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+    <Box sx={{ width: 40, height: 40, borderRadius: 2.5, bgcolor: "primary.light", color: "primary.main", display: "grid", placeItems: "center", flexShrink: 0 }}>
+      <Icon fontSize="small" />
+    </Box>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography variant="body2" color="text.secondary">{label}</Typography>
+      <Typography sx={{ fontWeight: 600, overflowWrap: "anywhere", whiteSpace: "pre-line" }}>{children}</Typography>
+    </Box>
+  </Stack>
+);
+
 const ViewPost = () => {
   const { id } = useParams();
   const history = useHistory();
 
   const [post, setPost] = useState(null);
   const [loadError, setLoadError] = useState("");
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(undefined);
   const [latlng, setLatlng] = useState([]);
   const [confirming, setConfirming] = useState(null); // "claim" | "cancel" | "pickedUp" | null
   const [busy, setBusy] = useState(false);
@@ -109,106 +129,100 @@ const ViewPost = () => {
   const renderActions = () => {
     if (isClaimer && post.status === "claimed") {
       return (
-        <>
-          <Alert severity="success" sx={{ mt: 1 }}>Your food bank claimed this pickup.</Alert>
-          <Button variant='contained' style={{ marginTop: "10px" }} onClick={() => setConfirming("pickedUp")}>
+        <Stack spacing={1.5}>
+          <Alert severity="success">Your food bank claimed this pickup. Collect it during the pickup window.</Alert>
+          <Button variant='contained' size="large" onClick={() => setConfirming("pickedUp")}>
             Mark as picked up
           </Button>
-        </>
+        </Stack>
       );
     }
     if (isOwner && post.status === "claimed") {
-      return <Alert severity="success" sx={{ mt: 1 }}>Claimed by {post.claimedByName}.</Alert>;
+      return <Alert severity="success">Claimed by {post.claimedByName}.</Alert>;
     }
     if (!isOpen) {
-      return <Alert severity="info" sx={{ mt: 1 }}>{STATUS_TEXT[post.status]}</Alert>;
+      return <Alert severity="info">{STATUS_TEXT[post.status]}</Alert>;
     }
     if (isOwner) {
       return (
-        <>
-          <Button variant='contained' style={{ marginTop: "10px" }} onClick={() => setEditing(true)}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+          <Button variant='contained' size="large" onClick={() => setEditing(true)}>
             Edit posting
           </Button>
-          <Button variant='outlined' color="error" style={{ marginTop: "10px" }} onClick={() => setConfirming("cancel")}>
-            Withdraw this posting
+          <Button variant='outlined' size="large" color="error" onClick={() => setConfirming("cancel")}>
+            Withdraw posting
           </Button>
-        </>
+        </Stack>
       );
     }
     if (user && user.isFoodbank) {
       return (
-        <>
-          <Button variant='contained' style={{ marginTop: "10px" }} onClick={() => setConfirming("claim")}>I can pick this up</Button>
-          <Button variant='outlined' style={{ marginTop: "10px" }} onClick={() => alert("Coming soon!")}>Schedule Uber Delivery (Beta)</Button>
-          <Button variant='outlined' style={{ marginTop: "10px" }} onClick={() => alert("Coming soon!")}>Use one of our drivers (Beta)</Button>
-        </>
+        <Button variant='contained' size="large" fullWidth onClick={() => setConfirming("claim")}>
+          I can pick this up
+        </Button>
       );
     }
+    if (user === undefined) return null;
     if (!user) {
       return (
-        <Alert severity="info" sx={{ mt: 1 }}>
+        <Alert severity="info">
           <Link to="/auth">Log in with a food bank account</Link> to claim this pickup.
         </Alert>
       );
     }
-    return <Alert severity="info" sx={{ mt: 1 }}>Only food bank accounts can claim pickups.</Alert>;
+    return <Alert severity="info">Only food bank accounts can claim pickups.</Alert>;
   };
+
+  const status = (post && post.status) || "open";
+  const STEPS = ["Posted", "Claimed", "Picked up"];
+  const activeStep = { open: 1, claimed: 2, picked_up: 3 }[status];
 
   let PostInfo;
   if (loadError) {
     PostInfo = <Alert severity="error">{loadError}</Alert>;
   } else if (!post) {
-    PostInfo = <h3>Loading...</h3>;
+    PostInfo = <Skeleton variant="rounded" height={420} sx={{ borderRadius: 5 }} />;
   } else {
     PostInfo = (
-      <div id="info">
-        <h1 className="restaurant-name">{post.fromRestaurantName}</h1>
-        <h3 className="restaurant-address">{post.fromRestaurantAddress}</h3>
-        <p className="pickup">
-          <b>Pickup Date:</b> {post.pickupDate ? formatPickupDate(post.pickupDate) : `Posted ${new Date(post.createdAt).toDateString()}`}
-        </p>
-        <p className="pickup"><b>Pickup Time:</b> {formatPickupTime(post.pickupTimeBegin)} - {formatPickupTime(post.pickupTimeEnd)}</p>
-        <hr style={{ color: "black", width: "100%" }} />
-        <p><b>Notes:</b> {post.notes ? post.notes : "None"}</p>
-        <hr style={{ color: "black", width: "100%" }} />
-        {actionError && <Alert severity="error" sx={{ mt: 1 }}>{actionError}</Alert>}
+      <Paper variant="outlined" sx={{ p: { xs: 3, sm: 4 }, borderRadius: 5 }}>
+        <StatusChip status={status} />
+        <Typography component="h1" variant="h4" sx={{ mt: 1.5, color: "primary.dark" }}>{post.fromRestaurantName}</Typography>
+
+        {activeStep && (
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ mt: 3, "& .MuiStepIcon-root.Mui-completed": { color: "primary.main" } }}>
+            {STEPS.map((label) => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}
+          </Stepper>
+        )}
+
+        <Stack spacing={2} sx={{ mt: 3 }}>
+          <DetailRow icon={ScheduleRoundedIcon} label="Pickup window">
+            {post.pickupDate ? formatPickupWindow(post) : `Posted ${new Date(post.createdAt).toDateString()}`}
+          </DetailRow>
+          <DetailRow icon={PlaceRoundedIcon} label="Pickup address">{post.fromRestaurantAddress}</DetailRow>
+          <DetailRow icon={NotesRoundedIcon} label="About the food">{post.notes || "No notes added."}</DetailRow>
+        </Stack>
+
+        <Divider sx={{ my: 3 }} />
+        {actionError && <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>}
         {renderActions()}
-      </div>
+      </Paper>
     );
   }
 
   return (
     <>
-      <div className='container flex-column center-center' style={{ width: "80%" }} >
-        <div className="flex-row start-center" style={{ marginBottom: "20px", justifyContent: "space-between", width: "100%" }}>
-          <div className='flex-row start-center'>
-            <Link to="/main">
-              <img src='/images/logo.png' alt="MealDrop home" width="90px"></img>
-            </Link>
-            <div className="flex-column" style={{ marginLeft: "25px" }}>
-              <div className="profile-header">
-                View Posting
-              </div>
-              <div className="profile-subheader">
-                {post && post.fromRestaurantName}
-              </div>
-            </div>
-          </div>
-          <div className='flex-column start-center'>
-            <Link to="/main" style={LinkTheme}>
-              <Button variant='outlined' style={{ color: "black", borderColor:"black", height: "50px", width: "150px", textDecoration: "none" }}>Back</Button>
-            </Link>
-          </div>
-        </div>
-        <div id="viewpost-page" style={{ justifyContent: 'space-between' }} className='flex-row '>
-          <div style={{ width: '49%', height: "100%" }}>
-            {PostInfo}
-          </div>
-          <div className="maps-row" style={{ padding: "0" }}>
+      <AppHeader user={user} />
+      <Container maxWidth="lg" component="main" sx={{ py: { xs: 3, md: 5 } }}>
+        <Button component={Link} to="/main" startIcon={<ArrowBackRoundedIcon />} color="inherit" sx={{ mb: 2, ml: -1 }}>
+          Back to pickups
+        </Button>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1.1fr) minmax(0, 1fr)" }, gap: { xs: 3, md: 4 }, alignItems: "start" }}>
+          {PostInfo}
+          <Paper variant="outlined" sx={{ height: { xs: 260, md: 480 }, borderRadius: 5, overflow: "hidden", position: { md: "sticky" }, top: { md: 88 } }}>
             <SimpleMap latlng={latlng} />
-          </div>
-        </div>
-      </div>
+          </Paper>
+        </Box>
+      </Container>
 
       {editing && post && (
         <PostingModal
@@ -236,7 +250,7 @@ const ViewPost = () => {
               : confirming && CONFIRM_TEXT[confirming].body}
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setConfirming(null)} disabled={busy}>Go back</Button>
           <Button onClick={runAction} disabled={busy} variant="contained" color={confirming === "cancel" ? "error" : "primary"}>
             {confirming && CONFIRM_TEXT[confirming].button}
