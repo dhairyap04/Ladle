@@ -181,9 +181,10 @@ const HandoffDialog = ({ delivery, stage, open, onClose, onDone, onQueued }) => 
 
           {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        {/* On a narrow phone the long submit label takes its own row instead of squeezing both buttons onto two lines. */}
+        <DialogActions sx={{ px: 3, pb: 2, flexWrap: "wrap", gap: 1, "& > :not(:first-of-type)": { ml: 0 }, "& .MuiButton-root": { whiteSpace: "nowrap" } }}>
           <Button onClick={onClose} disabled={busy}>Go back</Button>
-          <Button type="submit" variant="contained" disabled={busy || !ready}>{copy.submit}</Button>
+          <Button type="submit" variant="contained" disabled={busy || !ready} sx={{ flexGrow: { xs: 1, sm: 0 } }}>{copy.submit}</Button>
         </DialogActions>
       </Box>
     </Dialog>
