@@ -89,7 +89,8 @@ const Choice = ({ checked, onSelect, children }) => (
     onClick={onSelect}
     focusRipple
     sx={{
-      display: "flex", alignItems: "flex-start", gap: 1.5, width: "100%", textAlign: "left",
+      // ButtonBase centres its content; keep the circles in one column on the left.
+      display: "flex", alignItems: "flex-start", justifyContent: "flex-start", gap: 1.5, width: "100%", textAlign: "left",
       p: 1.5, borderRadius: 3, border: 2,
       borderColor: checked ? "primary.main" : "divider",
       bgcolor: checked ? "primary.light" : "background.paper",
