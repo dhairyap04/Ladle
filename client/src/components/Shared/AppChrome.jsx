@@ -61,7 +61,9 @@ export const InstallPrompt = () => {
     <Snackbar
       open={Boolean(method) && !dismissed}
       anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      sx={{ bottom: { xs: 80, sm: 24 } }}
+      // Below dialogs (MUI snackbars normally sit above them), so the banner never
+      // covers a dialog's buttons, such as the driver's "I've collected the food".
+      sx={{ bottom: { xs: 80, sm: 24 }, zIndex: (theme) => theme.zIndex.modal - 1 }}
     >
       <Alert
         severity="success"
